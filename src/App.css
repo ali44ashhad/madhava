@@ -1,0 +1,12 @@
+@keyframes bellShake {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(15deg); }
+  40% { transform: rotate(-15deg); }
+  60% { transform: rotate(10deg); }
+  80% { transform: rotate(-10deg); }
+  100% { transform: rotate(0); }
+}
+
+.animate-bell {
+  animation: bellShake 0.8s infinite;
+}
