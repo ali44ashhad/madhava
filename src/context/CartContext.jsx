@@ -34,17 +34,18 @@ export const CartProvider = ({ children }) => {
   const addToCart = (product, quantity = 1) => {
     setCart(prev => {
       const existingItem = prev.find(item => item.id === product.id);
+  
       if (existingItem) {
-        return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+        // Update quantity and move updated item to the top
+        const filtered = prev.filter(item => item.id !== product.id);
+        return [{ ...existingItem, quantity: existingItem.quantity + quantity }, ...filtered];
       }
-      return [...prev, { ...product, quantity }];
+  
+      // Prepend new product to show at the top
+      return [{ ...product, quantity }, ...prev];
     });
   };
-
+  
   const removeFromCart = (productId) => {
     setCart(prev => prev.filter(item => item.id !== productId));
   };

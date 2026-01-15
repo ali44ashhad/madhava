@@ -67,6 +67,21 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('orders'); // Clear orders on logout
   };
 
+  const deleteAccount = () => {
+    if (user) {
+      const userId = user.id;
+      // Clear user data
+      setUser(null);
+      localStorage.removeItem('user');
+      
+      // Clear user-specific data
+      localStorage.removeItem('orders');
+      localStorage.removeItem(`wishlist_${userId}`);
+      localStorage.removeItem(`addresses_${userId}`);
+      localStorage.removeItem(`shared_products_${userId}`);
+    }
+  };
+
   const isAuthenticated = !!user;
 
   return (
@@ -76,6 +91,7 @@ export const AuthProvider = ({ children }) => {
         login,
         signup,
         logout,
+        deleteAccount,
         isAuthenticated,
         isLoading,
       }}

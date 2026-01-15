@@ -140,16 +140,28 @@ const tabs = [
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-8">
-          {categories.map((cat, idx) => (
-            <div key={idx} className="flex flex-col items-center group cursor-pointer">
-              <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:bg-gray-100 transition-colors">
-                 <img src={cat.img} alt={cat.name} className="w-12 h-12 object-contain" />
-              </div>
-              <p className="text-[11px] font-bold text-center leading-tight">{cat.name}</p>
-            </div>
-          ))}
+ 
+{categories.map((cat, idx) => (
+  <Link
+    to={`category${cat.slug}`}
+    key={idx}
+    className="flex flex-col items-center group cursor-pointer"
+  >
+    <div className="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:bg-gray-100 transition-colors">
+      <img
+        src={cat.img}
+        alt={cat.name}
+        className="w-12 h-12 object-contain"
+      />
+    </div>
+    <p className="text-[11px] font-bold text-center leading-tight">
+      {cat.name}
+    </p>
+  </Link>
+))}
+
         </div>
-      </section>
+   </section>
 
     </div>
   );

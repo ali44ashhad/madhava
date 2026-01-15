@@ -1,9 +1,8 @@
 import './App.css'
 import { useState, useEffect, useRef } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import { Bell } from "lucide-react";
 import { motion } from 'framer-motion';
-
+import images from './assets/images'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
@@ -24,6 +23,8 @@ import SignUp from './pages/Auth/SignUp'
 import Orders from './pages/Orders/Orders'
 import OrderDetails from './pages/Orders/OrderDetails'  
 import Profile from './pages/Profile/Profile'
+import Checkout from './pages/Checkout/Checkout'
+import Payment from './pages/Payment/Payment'
 import TermsAndConditions from './pages/policies/TermsAndConditions'
 import PrivacyPolicy from './pages/policies/PrivacyPolicy'
 
@@ -86,13 +87,21 @@ function App() {
 
       {/* 🔔 Bell Button */}
       <motion.div
-        className="fixed bottom-6 right-6 z-[9999]"
-        animate={!isPlaying ? { rotate: [0, -15, 15, -15, 0] } : { rotate: 0 }}
-        transition={{
-          repeat: !isPlaying ? Infinity : 0,
-          duration: 1,
-          ease: "easeInOut"
-        }}
+        className="
+        fixed z-[9999]
+        bottom-[-5px] right-[-30px]        /* mobile */
+        sm:bottom-[-10px] sm:right-[-30px]            /* small screens */
+        md:bottom-[-10] md:right-[-50]            /* tablets */
+        lg:bottom-[-10px] lg:right-[-45px]           /* desktop */
+      "
+      
+      animate={!isPlaying ? { rotate: [-10, 10] } : { rotate: 0 }}
+transition={{
+  repeat: !isPlaying ? Infinity : 0,
+  repeatType: "mirror",
+  duration: 1.2,   // ⬅️ Increase = slower
+  ease: "easeInOut"
+}}
       >
         <motion.button
           onClick={toggleBell}
@@ -100,20 +109,26 @@ function App() {
           whileTap={{ scale: 0.9 }}
           className="
             relative
-            bg-gradient-to-br from-[#a3004a] to-[#88013c]
-            text-white
-            p-5
-            rounded-full
-            shadow-[0_0_25px_rgba(136,1,60,0.6)]
-            flex items-center justify-center
+             flex items-center justify-center
           "
         >
           {/* 🌊 Wave ONLY when song is NOT playing */}
           {!isPlaying && (
-            <span className="absolute inset-0 rounded-full animate-ping bg-[#88013c]/40"></span>
+            <span className="absolute"></span>
           )}
 
-          <Bell size={34} className="text-white relative z-10" />
+<img
+  src={images.krishnaFlute}
+  alt="bell"
+  className="
+    relative z-10
+    w-30 h-30        /* mobile default */
+    sm:w-30 sm:h-30   
+    md:w-30 md:h-30  /* tablets */
+    lg:w-40 lg:h-40  /* desktop */
+    object-contain
+  "
+/>
         </motion.button>
       </motion.div>
 
@@ -125,6 +140,7 @@ function App() {
         <Route path='/cart' element={<Cart />} />
         <Route path='/god-dresses' element={<Personalize />} />
         <Route path='/home-decor' element={<ShopByCategories />} />
+        <Route path='/home-decor/:slug' element={<ProductDetails />}/>
         <Route path='/god-statues' element={<GiftHero />} />
         <Route path='/category/:slug' element={<CommonLayout />} />
         <Route path='/product/:slug' element={<ProductDetails/>}/>
@@ -140,6 +156,8 @@ function App() {
 
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<SignUp />} />
+        <Route path='/checkout' element={<Checkout />} />
+        <Route path='/payment' element={<Payment />} />
         <Route path='/profile' element={<Profile />} />
         <Route path='/orders' element={<Orders />} />
         <Route path='/orders/:id' element={<OrderDetails />} />

@@ -31,12 +31,12 @@ const Navbar = () => {
   return (
     <nav className="fixed w-full font-sans z-[99]">
       {/* TOP BAR */}
-      <div className="bg-[#eff4f7] text-black py-2 text-center text-[10px] md:text-xs font-medium border-b px-4">
+      <div className="bg-[#88013c] text-white py-2 text-center text-[10px] md:text-xs font-medium border-b px-4">
         Get Extra 5% Off On Prepaid Orders | Code: <span className="font-bold">HOLIDAY5</span>
       </div>
 
       {/* MAIN NAV */}
-      <div className="bg-white px-4 md:px-10 py-4 flex items-center justify-between shadow-sm relative z-50">
+      <div className="bg-[#F2EDF0] px-4 md:px-10 py-4 flex items-center justify-between shadow-sm relative z-50">
         
         {/* Mobile Hamburger */}
         <div className="md:hidden flex items-center">
@@ -45,9 +45,7 @@ const Navbar = () => {
 
         {/* Logo */}
         <Link to='/' onClick={closeMobileMenu}>
-          <img 
-            src="https://www.boat-lifestyle.com/cdn/shop/files/boAt_logo_bad_6c0034a7-b16a-463e-a89c-48c9df17cc90.png" 
-            alt="Logo" className="w-16 md:w-20" 
+          <img src={images.madhavGopal} alt="Logo" className="w-16 md:w-20 z-9999" 
           />
         </Link>
 
@@ -160,7 +158,7 @@ const Navbar = () => {
           >
             <div className="max-w-7xl mx-auto p-10 grid grid-cols-4 gap-8">
               {categories.map((cat) => (
-                <Link key={cat.slug} to={`/category${cat.slug}`}>
+                <Link key={cat.slug} to={`/category/${cat.slug}`}>
                   <div className="flex items-center space-x-4 cursor-pointer">
                     <img src={cat.img} alt={cat.name} className="w-12 h-12 rounded-full" />
                     <span>{cat.name}</span>

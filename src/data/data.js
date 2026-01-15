@@ -1,4 +1,4 @@
-// home page hero section data //
+  // home page hero section data //
 import images from "../assets/images";
 export const heroSlides = [
   {
@@ -299,13 +299,13 @@ export const ExploreData = [
     id: 1, 
     title: "God Dresses", 
     video: images.godDressVideo, 
-    poster: images.dress1 
+    poster: images.godDress2 
   },
   { 
     id: 2, 
     title: "Pooja Accessories", 
     video: images.poojaAccessoriesVideo, 
-    poster: images.godNosepin 
+    poster: images.poojaThalli3 
   },
   { 
     id: 3, 
@@ -317,14 +317,14 @@ export const ExploreData = [
     id: 4, 
     title: "Spiritual Decor", 
     video: images.spiritualDecorVideo, 
-    poster: images.spiritualDecorPoster 
+    poster: images.mirror 
   },
   { 
     id: 5, 
 
     title: "Home Temple & Chowki", 
     video: images.chowkiVideo, 
-    poster: images.mandirChawnki 
+    poster: images.mandir1 
   },
 ];
 
@@ -1190,7 +1190,7 @@ export const productDetail = [
     mrp: 4599,
     discount: "59% OFF",
     description: "Elegant decorative table lamp with premium finish, perfect for bedrooms, living rooms, and side tables. Creates a warm and cozy ambience.",
-    images: ["https://i.ibb.co/5sY4JwM/tablelamp1.png"],
+    images: [images.lamp],
     packageContains: "1 Table Lamp with Bulb",
     washable: "No",
     dimensions: "Height: 14 inches, Width: 7 inches",
@@ -1212,7 +1212,7 @@ export const productDetail = [
   mrp: 5999,
   discount: "58% OFF",
   description: "Premium decorative wall mirror with elegant frame design. Enhances living rooms, bedrooms, and hallways with a modern luxurious look.",
-  images: ["https://i.ibb.co/1Q3m0xg/wallmirror1.png"],
+  images: [images.mirror],
   packageContains: "1 Wall Mirror with Mounting Kit",
   washable: "No",
   dimensions: "Height: 24 inches, Width: 18 inches",
@@ -1233,7 +1233,7 @@ export const productDetail = [
   mrp: 1999,
   discount: "60% OFF",
   description: "Realistic artificial plant with premium pot. Adds freshness to home, office, and balcony without any maintenance.",
-  images: ["https://i.ibb.co/9bZ2TnF/artificialplant1.png"],
+  images: [images.plantPlot],
   packageContains: "1 Artificial Plant with Decorative Pot",
   washable: "Yes (Dry cloth cleaning recommended)",
   dimensions: "Height: 18 inches, Pot Diameter: 6 inches",
@@ -1255,7 +1255,7 @@ export const productDetail = [
   mrp: 2999,
   discount: "57% OFF",
   description: "Silent sweep modern wall clock with stylish design. Perfect for living room, bedroom, office and workspace decor.",
-  images: ["https://i.ibb.co/F8Rk5KZ/wallclock1.png"],
+  images: [images.wallClock],
   packageContains: "1 Wall Clock with Battery",
   washable: "No",
   dimensions: "Diameter: 12 inches",
@@ -1277,7 +1277,7 @@ export const productDetail = [
   mrp: 2499,
   discount: "60% OFF",
   description: "Soft and premium quality decorative cushion covers to enhance sofa, bed, and living room decor.",
-  images: ["https://i.ibb.co/9g2k7sM/cushion1.png"],
+  images: [images.cushionSet],
   packageContains: "5 Cushion Covers (Without Fillers)",
   washable: "Yes",
   dimensions: "16 x 16 inches each",
@@ -1299,7 +1299,7 @@ export const productDetail = [
   mrp: 3999,
   discount: "62% OFF",
   description: "Elegant decorative showpiece sculpture for living room, office desk, and showcase shelves. Adds artistic charm to your space.",
-  images: ["https://i.ibb.co/Y8q6fFQ/showpiece1.png"],
+  images: [images.sculpture],
   packageContains: "1 Decorative Showpiece Sculpture",
   washable: "No",
   dimensions: "Height: 12 inches, Width: 5 inches",
@@ -1325,7 +1325,7 @@ export const productDetail = [
   discount: "56% OFF",
   description:
     "Beautiful silver plated pooja thali set perfect for daily worship and festivals.",
-  images: ["https://i.ibb.co/4ZKZJ0Z/thali1.png"],
+  images: [images.poojaThalli1],
   packageContains: "1 Pooja Thali, 1 Diya, 1 Roli Chawal Bowl, 1 Agarbatti Stand",
   washable: "Yes",
   dimensions: "12 x 12 inches",
@@ -1345,7 +1345,7 @@ export const productDetail = [
   discount: "57% OFF",
   description:
     "Colorfully decorated pooja thali ideal for Diwali, Navratri and special occasions.",
-  images: ["https://i.ibb.co/9cYVh0f/thali2.png"],
+  images: [images.poojaThalli2],
   packageContains: "1 Decorated Thali, 1 Diya, 1 Kumkum Holder, 1 Rice Bowl",
   washable: "No",
   dimensions: "11 x 11 inches",
@@ -1365,7 +1365,7 @@ export const productDetail = [
   discount: "56% OFF",
   description:
     "Traditional brass pooja thali set for temple-style home worship.",
-  images: ["https://i.ibb.co/JFqQk7J/thali3.png"],
+  images: [images.poojaThalli3],
   packageContains: "1 Brass Thali, 2 Diyas, 1 Bell, 1 Agarbatti Stand",
   washable: "Yes",
   dimensions: "12 x 12 inches",
@@ -1385,7 +1385,7 @@ export const productDetail = [
   discount: "57% OFF",
   description:
     "Elegant marble pooja thali with traditional artwork for daily pooja.",
-  images: ["https://i.ibb.co/9wdZ1Bz/thali4.png"],
+  images: [images.poojaThalli4],
   packageContains: "1 Marble Thali, 1 Diya, 1 Kumkum Holder, 1 Chawal Bowl",
   washable: "No",
   dimensions: "11 x 11 inches",
@@ -1405,7 +1405,7 @@ export const productDetail = [
   discount: "58% OFF",
   description:
     "Luxury designer pooja thali set specially crafted for festive occasions.",
-  images: ["https://i.ibb.co/k4nG0ZL/thali5.png"],
+  images: [images.poojaThalli5],
   packageContains: "1 Designer Thali, 2 Diyas, 1 Roli Chawal Set, 1 Bell",
   washable: "No",
   dimensions: "12 x 12 inches",
@@ -1425,7 +1425,7 @@ export const productDetail = [
   discount: "60% OFF",
   description:
     "Durable stainless steel pooja thali for everyday temple rituals.",
-  images: ["https://i.ibb.co/fkWZJ6V/thali6.png"],
+  images: [images.poojaThalli6],
   packageContains: "1 Steel Thali, 1 Diya, 1 Agarbatti Stand, 1 Kumkum Bowl",
   washable: "Yes",
   dimensions: "12 x 12 inches",
@@ -1532,7 +1532,7 @@ export const productDetail = [
   discount: "62% OFF",
   description:
     "Traditional brass diya lamp set perfect for daily pooja, Diwali and festive decorations.",
-  images: ["https://i.ibb.co/6Yc4q6r/diya1.png"],
+  images: [images.diya1],
   packageContains: "4 Brass Diyas",
   washable: "Yes",
   dimensions: "3 x 3 inches (each)",
@@ -1552,7 +1552,7 @@ export const productDetail = [
   discount: "60% OFF",
   description:
     "Colorful hand-painted diyas ideal for Diwali, Navratri and festive home decor.",
-  images: ["https://i.ibb.co/vv4Y5ZX/diya2.png"],
+  images: [images.diya2],
   packageContains: "6 Decorated Diyas",
   washable: "No",
   dimensions: "3 x 3 inches (each)",
@@ -1572,7 +1572,7 @@ export const productDetail = [
   discount: "59% OFF",
   description:
     "Beautiful peacock design brass diya lamp for temples and festive decoration.",
-  images: ["https://i.ibb.co/j5NnVtH/diya3.png"],
+  images: [images.diya3],
   packageContains: "1 Peacock Brass Diya",
   washable: "Yes",
   dimensions: "10 x 6 inches",
@@ -1592,7 +1592,7 @@ export const productDetail = [
   discount: "61% OFF",
   description:
     "Premium marble akhand diya designed for continuous jyot during festivals.",
-  images: ["https://i.ibb.co/9gTt7qH/diya4.png"],
+  images: [images.lamp1],
   packageContains: "1 Marble Akhand Diya",
   washable: "No",
   dimensions: "6 x 6 inches",
@@ -1612,7 +1612,7 @@ export const productDetail = [
   discount: "58% OFF",
   description:
     "Luxury decorative urli diya bowl for floating flowers and candles during festivals.",
-  images: ["https://i.ibb.co/6sQ4rHv/diya5.png"],
+  images: [images.lamp2],
   packageContains: "1 Urli Bowl",
   washable: "Yes",
   dimensions: "12 inches diameter",
@@ -1632,7 +1632,7 @@ export const productDetail = [
   discount: "58% OFF",
   description:
     "Traditional hanging diya lamp for temples, balconies and festive decoration.",
-  images: ["https://i.ibb.co/4ZV0PjP/diya6.png"],
+  images: [images.lamp3],
   packageContains: "1 Hanging Diya with Chain",
   washable: "Yes",
   dimensions: "15 inches height",

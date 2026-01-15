@@ -12,6 +12,7 @@ import heroRight3 from './heroRightimages/gopal-dress3.png'
 import heroRight4 from './heroRightimages/gopal-dress4.png'
 import heroRight5 from './heroRightimages/gopal-dress5.png'
 import heroRight6 from './heroRightimages/gopal-dress6.png'
+import krishnaFlute from './home/krishna-flute.png'
 
 // ornaments //
 import godAnklet from './ornaments/god-anklet.webp'
@@ -153,6 +154,8 @@ import mandir3 from './festItems/mandir3.png'
 import mandir4 from './festItems/mandir4.webp'
 import mandir5 from './festItems/mandir5.webp'
 
+import madhavGopal from './logo/madhav-gopal-logo.png'
+
 
 const images = {
 
@@ -219,6 +222,7 @@ plantPlot,
 mirror,
 lamp,
 cushionSet,
+krishnaFlute,
 
 
 
@@ -296,6 +300,7 @@ heroRight3,
 heroRight4,
 heroRight5,
 heroRight6,
+madhavGopal,
 
 }
 export default images

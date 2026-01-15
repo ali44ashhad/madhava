@@ -73,9 +73,9 @@ const Footer = () => {
 
             <div className="relative max-w-sm">
               <input
-                type="email"
+                type="email"  
                 placeholder="Enter your email address"
-                className="w-full py-3 px-5 rounded-xl outline-none shadow-sm text-black"
+                className="w-full py-3 px-5 border-2 border-gray-400 rounded-xl outline-none shadow-sm text-gray-400"
               />
               <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-white p-1 rounded-full border">
                 <ChevronRight className="w-5 h-5 text-[#88013C]" />

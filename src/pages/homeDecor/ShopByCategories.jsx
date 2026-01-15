@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { ShoppingBag } from 'lucide-react'
 const ShopByCategories = () => {
+
   const { addToCart } = useCart();
   
   return (

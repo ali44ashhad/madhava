@@ -1,4 +1,4 @@
-@keyframes bellShake {
+/* @keyframes bellShake {
   0% { transform: rotate(0); }
   20% { transform: rotate(15deg); }
   40% { transform: rotate(-15deg); }
@@ -9,4 +9,4 @@
 
 .animate-bell {
   animation: bellShake 0.8s infinite;
-}
+} */
