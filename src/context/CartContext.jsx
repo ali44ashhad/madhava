@@ -32,22 +32,41 @@ export const CartProvider = ({ children }) => {
   }, [cart]);
 
   const addToCart = (product, quantity = 1) => {
-    setCart(prev => {
-      const existingItem = prev.find(item => item.id === product.id);
-  
-      if (existingItem) {
-        // Update quantity and move updated item to the top
-        const filtered = prev.filter(item => item.id !== product.id);
-        return [{ ...existingItem, quantity: existingItem.quantity + quantity }, ...filtered];
+    setCart((prev) => {
+      // Use productId as primary key (fallback to id)
+      const key = product.productId || product.id;
+      if (!key) {
+        // No stable key, just append as standalone item
+        return [...prev, { ...product, quantity }];
       }
-  
-      // Prepend new product to show at the top
-      return [{ ...product, quantity }, ...prev];
+
+      const existingIndex = prev.findIndex((item) => item.id === key);
+
+      if (existingIndex !== -1) {
+        const updated = [...prev];
+        const existingItem = updated[existingIndex];
+        updated[existingIndex] = {
+          ...existingItem,
+          quantity: existingItem.quantity + quantity,
+        };
+        return updated;
+      }
+
+      // New cart item
+      return [
+        ...prev,
+        {
+          ...product,
+          id: key,          // ensure every item has id for Cart page
+          productId: key,   // keep productId too for clarity
+          quantity,
+        },
+      ];
     });
   };
-  
+
   const removeFromCart = (productId) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
+    setCart((prev) => prev.filter((item) => item.id !== productId));
   };
 
   const updateQuantity = (productId, quantity) => {
@@ -55,8 +74,8 @@ export const CartProvider = ({ children }) => {
       removeFromCart(productId);
       return;
     }
-    setCart(prev =>
-      prev.map(item =>
+    setCart((prev) =>
+      prev.map((item) =>
         item.id === productId ? { ...item, quantity } : item
       )
     );
@@ -71,7 +90,7 @@ export const CartProvider = ({ children }) => {
   };
 
   const getCartTotal = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   };
 
   return (

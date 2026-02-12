@@ -1,12 +1,38 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { poojaThaliData } from '../../data/data'
-import { Link } from 'react-router-dom'
-import { useCart } from '../../context/CartContext'
-import { ShoppingBag } from 'lucide-react'
+import { getStoreProducts } from '../../utils/storeApi'
+import ProductCard from '../../components/ProductCard'
 import images from '../../assets/images'
 
 const PoojaThali = () => {
-  const { addToCart } = useCart();
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      setLoading(true)
+      try {
+        const payload = await getStoreProducts({ page: 1, limit: 40 })
+        const list = Array.isArray(payload?.products)
+          ? payload.products
+          : Array.isArray(payload)
+            ? payload
+            : []
+        if (!alive) return
+        setProducts(list)
+      } catch {
+        if (!alive) return
+        setProducts([])
+      } finally {
+        if (!alive) return
+        setLoading(false)
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
   
   return (
     <>
@@ -70,57 +96,14 @@ const PoojaThali = () => {
     </button>
   </div>
 
-  {/* Product Grid */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-10">
-    
-{poojaThaliData.map((product) => (
-  <Link to={`/pooja-thali/${product.slug}`} key={product.id}>
-    <div className="group bg-gray-50 rounded-2xl overflow-hidden border border-transparent hover:border-gray-200 transition-all">
-      <div className="relative aspect-square">
-        {product.badge && (
-          <span className="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-1 font-bold rounded-sm z-10">
-            ● {product.badge}
-          </span>
-        )}
-
-        <img
-          src={product.img}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-
-        {/* Specs Bar */}
-        <div className="absolute bottom-0 w-full bg-[#ffce1c] py-1 px-3 flex justify-between items-center text-[11px] font-bold">
-          <span>{product.specs}</span>
-          <span className="flex items-center gap-1">⭐ {product.rating}</span>
-        </div>
-      </div>
-
-      <div className="p-4 bg-white">
-        <h3 className="font-bold text-sm mb-2 truncate">{product.name}</h3>
-        <hr className="border-dashed mb-2" />
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg font-black">₹{product.price.toLocaleString()}</span>
-          <span className="text-gray-400 line-through text-xs">₹{product.oldPrice.toLocaleString()}</span>
-          <span className="text-green-500 font-bold text-[11px]">
-            {product.discount}
-          </span>
-        </div>
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            addToCart(product, 1);
-          }}
-          className="w-full bg-[#88013C] text-white py-2 rounded-lg font-semibold hover:bg-[#88013C]/90 transition-all flex items-center justify-center gap-2 text-xs mt-2"
-        >
-          <ShoppingBag size={14} />
-          <span>Add to Cart</span>
-        </button>
-      </div>
-    </div>
-  </Link>
-))}
+  {/* Product Grid – ProductCard, no Add to Cart */}
+  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-6">
+    {loading && (
+      <p className="col-span-full text-center text-gray-500">Loading products…</p>
+    )}
+    {(products.length ? products : poojaThaliData).map((product) => (
+      <ProductCard key={product.id} product={product} />
+    ))}
   </div>
 </section>
     </>

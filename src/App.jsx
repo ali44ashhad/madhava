@@ -12,7 +12,7 @@ import Personalize from './pages/GodDresses/Personalize'
 import ShopByCategories from './pages/homeDecor/ShopByCategories'
 import GiftHero from './pages/statues/GiftHero'
 import CommonLayout from './components/CommonLayout'
-import Mandir from './pages/fest/mandir'
+import Mandir from './pages/fest/Mandir'
 import ProductDetails from './components/productDetails'
 import PoojaThali from './pages/fest/PoojaThali'
 import DiyaLamps from './pages/fest/DiyaLamps'
@@ -25,10 +25,23 @@ import OrderDetails from './pages/Orders/OrderDetails'
 import Profile from './pages/Profile/Profile'
 import Checkout from './pages/Checkout/Checkout'
 import Payment from './pages/Payment/Payment'
+import CircleLoader from "react-spinners/CircleLoader"
+
+import AdminLogin from './pages/Auth/AdminLogin'
+import AdminDashboard from './pages/adminPages/AdminDashboard'
+
+
+// policies
 import TermsAndConditions from './pages/policies/TermsAndConditions'
 import PrivacyPolicy from './pages/policies/PrivacyPolicy'
+import Shipping from './pages/policies/Shipping'
+import ReturnAndRefund from './pages/policies/ReturnAndRefund'
+import Cancellation from './pages/policies/Cancellation'
+import Disclaimer from './pages/policies/Disclaimer'
 
-import CircleLoader from "react-spinners/CircleLoader"
+// products
+
+import Products from './components/Products';
 
 function App() {
   const location = useLocation()
@@ -82,6 +95,9 @@ function App() {
 
   return (
     <>
+      <Navbar />
+
+
       {/* 🔔 Audio */}
       <audio ref={audioRef} src="/bell.mp3" preload="auto" />
 
@@ -133,7 +149,6 @@ transition={{
       </motion.div>
 
       <ScrollToTop />
-      <Navbar />
 
       <Routes>
         <Route path='/' element={<Home />} />
@@ -143,7 +158,7 @@ transition={{
         <Route path='/home-decor/:slug' element={<ProductDetails />}/>
         <Route path='/god-statues' element={<GiftHero />} />
         <Route path='/category/:slug' element={<CommonLayout />} />
-        <Route path='/product/:slug' element={<ProductDetails/>}/>
+        <Route path='/product/:id' element={<ProductDetails/>}/>
 
         <Route path='/pooja-thali' element={<PoojaThali />}/>
         <Route path='/pooja-thali/:slug' element={<ProductDetails />}/>
@@ -161,9 +176,24 @@ transition={{
         <Route path='/profile' element={<Profile />} />
         <Route path='/orders' element={<Orders />} />
         <Route path='/orders/:id' element={<OrderDetails />} />
+
+        <Route path="*" element={<PageNotFound />} />
+
+        {/* policies */}
         <Route path='/privacy-policy' element={<PrivacyPolicy />} />
         <Route path='/terms-and-conditions' element={<TermsAndConditions />} />
-        <Route path="*" element={<PageNotFound />} />
+        <Route path='/shipping-policy' element={<Shipping />} />
+        <Route path='/return-policy' element={<ReturnAndRefund />} />
+        <Route path='/cancellation-policy' element={<Cancellation />} />
+        <Route path='/disclaimer' element={<Disclaimer />} /> 
+
+
+{/* product coommon page */}
+<Route path='/products' element={<Products />} />
+
+        {/* Admin */}
+        <Route path='/admin-login' element={<AdminLogin />} />
+        <Route path='/admin-dashboard' element={<AdminDashboard />} />
       </Routes>
 
       <Footer />

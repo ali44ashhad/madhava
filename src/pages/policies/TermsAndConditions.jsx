@@ -2,7 +2,7 @@ import React from "react";
 
 const TermsAndConditions = () => {
   return (
-    <div className="pt-30 w-[95%] mx-auto py-10">
+    <div className="pt-50 w-[95%] mx-auto py-10">
 
       {/* HEADER */}
       <div className="bg-[#88013c] text-white rounded-2xl p-6 md:p-10 mb-10">

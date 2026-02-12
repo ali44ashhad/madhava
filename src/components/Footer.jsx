@@ -12,18 +12,18 @@ const Footer = () => {
       { name: "Brass Diyas", path: "/diya-lamps" },
     ],
     [
-      { name: "Home Mandir", path: "/mandir" },
-      { name: "Chowki & Sinhasan", path: "/mandir-chowki" },
-      { name: "Temple Decor", path: "/home-decor" },
-      { name: "Spiritual Gifts", path: "/category/spiritual-gifts" },
+      // { name: "Home Mandir", path: "/mandir" },
+      // { name: "Chowki & Sinhasan", path: "/mandir-chowki" },
+      // { name: "Temple Decor", path: "/home-decor" },
+      // { name: "Spiritual Gifts", path: "/category/spiritual-gifts" },
     ],
   ];
 
   const shopLinks = [
-    { name: "Track Your Order", path: "/track-order" },
-    { name: "Bulk Orders", path: "/bulk-orders" },
-    { name: "Customer Support", path: "/contact" },
-    { name: "Care Instructions", path: "/care-instructions" },
+   { name: "Home Mandir", path: "/mandir" },
+      { name: "Chowki & Sinhasan", path: "/mandir-chowki" },
+      { name: "Temple Decor", path: "/home-decor" },
+      { name: "Spiritual Gifts", path: "/category/spiritual-gifts" },
   ];
 
   const policyLinks = [
@@ -152,7 +152,7 @@ const Footer = () => {
             <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <h4 className="font-bold mb-5 text-lg text-yellow-300">Policies</h4>
 
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 text-sm font-medium">
+              <ul className=" text-sm font-medium">
                 {policyLinks.map((item, i) => (
                   <motion.li
                     key={item.name}
@@ -161,6 +161,7 @@ const Footer = () => {
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true }}
+                    className="mb-2"
                   >
                     <Link to={item.path} className="hover:text-yellow-300 transition">
                       {item.name}
