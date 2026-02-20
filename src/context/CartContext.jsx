@@ -47,14 +47,15 @@ export const CartProvider = ({ children }) => {
     }
   }, [isAuthenticated]);
 
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (item, quantity) => {
     if (!isAuthenticated) {
       alert("Please login to use the cart.");
       return;
     }
     try {
-      const skuId = product.productId || product.id;
-      await cartApi.addCartItem({ skuId, quantity });
+      const skuId = item.skuId || item.sku?.id || item.sku?._id || item.productId || item.id;
+      const qty = quantity || item.quantity || 1;
+      await cartApi.addCartItem({ skuId, quantity: qty });
       await fetchCart();
     } catch (error) {
       console.error("Failed to add to cart", error);

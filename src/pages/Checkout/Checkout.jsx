@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const Checkout = () => {
   const { cart, getCartTotal } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { customer, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -53,9 +53,10 @@ const Checkout = () => {
     ? buyNowProduct.price * buyNowProduct.quantity
     : getCartTotal();
 
-  const tax = subtotal * 0.18;
-  const shipping = subtotal > 999 ? 0 : 99;
-  const grandTotal = subtotal + tax + shipping;
+  // Prices are inclusive of GST as per backend, and there is no shipping fee for now
+  const tax = 0; // Included in price
+  const shipping = 0; // No shipping fee
+  const grandTotal = subtotal; // Accurate to backend
 
   useEffect(() => {
     // if (!isAuthenticated) {
@@ -68,13 +69,16 @@ const Checkout = () => {
       return;
     }
 
-    loadAddresses();
-  }, [isAuthenticated, cart.length]);
+    if (customer?.id) {
+      loadAddresses();
+    }
+  }, [isAuthenticated, cart.length, customer]);
 
   const loadAddresses = async () => {
     try {
+      if (!customer?.id) return;
       setIsLoading(true);
-      const userAddresses = await getAddresses();
+      const userAddresses = await getAddresses(customer.id);
       setAddresses(userAddresses);
       // Select the first address as default if none selected
       if (userAddresses.length > 0 && !selectedAddress) {
@@ -105,6 +109,7 @@ const Checkout = () => {
     try {
       setIsLoading(true);
       const addressData = {
+        customerId: customer.id,
         name: formData.name,
         phone: formData.phone,
         line1: formData.line1,
@@ -589,29 +594,23 @@ const Checkout = () => {
                 </div>
 
                 <div className="flex justify-between items-center text-gray-700">
-                  <span>Tax (18% GST)</span>
-                  <span className="font-semibold">₹{tax.toFixed(2)}</span>
+                  <span>Tax (Included)</span>
+                  <span className="font-semibold text-green-600">Inclusive</span>
                 </div>
 
                 <div className="flex justify-between items-center text-gray-700">
                   <span>Shipping</span>
                   <span className="font-semibold">
-                    {shipping === 0 ? (
-                      <span className="text-green-600">Free</span>
-                    ) : (
-                      `₹${shipping}`
-                    )}
+                    <span className="text-green-600">Free</span>
                   </span>
                 </div>
 
-                {shipping === 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-xs text-green-700 flex items-center gap-2">
-                      <CheckCircle2 size={14} />
-                      You saved ₹99 on shipping!
-                    </p>
-                  </div>
-                )}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-xs text-green-700 flex items-center gap-2">
+                    <CheckCircle2 size={14} />
+                    Free shipping applied on your order!
+                  </p>
+                </div>
 
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">

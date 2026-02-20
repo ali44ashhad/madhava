@@ -30,10 +30,11 @@ const Payment = () => {
   const orderSummary = location.state?.orderSummary;
 
   const subtotal = orderSummary?.subtotal || getCartTotal();
-  const tax = orderSummary?.tax || subtotal * 0.18;
-  const shipping = orderSummary?.shipping || (subtotal > 999 ? 0 : 99);
+  const tax = 0; // Inclusive in price
+  const shipping = 0; // Free shipping
   const discount = 0; // Can be calculated based on coupons/promotions
-  const grandTotal = orderSummary?.total || subtotal + tax + shipping - discount;
+  const codFee = selectedMethod === 'cod' ? 50 : 0;
+  const grandTotal = subtotal + shipping - discount + codFee;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -445,15 +446,23 @@ const Payment = () => {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-600">
-                  <span>Tax (18%)</span>
-                  <span className="font-semibold text-gray-900">₹{tax.toFixed(2)}</span>
+                  <span>Tax (Included)</span>
+                  <span className="font-semibold text-green-600">Inclusive</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span className="font-semibold text-gray-900">
-                    {shipping === 0 ? 'Free' : `₹${shipping}`}
+                    Free
                   </span>
                 </div>
+                {selectedMethod === 'cod' && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>COD Fee</span>
+                    <span className="font-semibold text-gray-900">
+                      ₹{codFee}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-lg font-bold text-gray-900 pt-2">
                   <span>Total</span>
                   <span className="text-[#88013C]">₹{grandTotal.toLocaleString()}</span>

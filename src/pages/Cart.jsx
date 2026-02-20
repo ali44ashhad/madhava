@@ -12,9 +12,9 @@ const Cart = () => {
 
   // Calculations based on the current state of the cart
   const subtotal = getCartTotal();
-  const tax = subtotal * 0.18;
-  const shipping = subtotal > 999 || subtotal === 0 ? 0 : 99;
-  const grandTotal = subtotal + tax + shipping;
+  const tax = 0; // Inclusive in price
+  const shipping = 0; // Free shipping
+  const grandTotal = subtotal; // Aligned with backend value
 
   // Calculate savings
   const totalSavings = cart.reduce((acc, item) => {
@@ -258,26 +258,16 @@ const Cart = () => {
                 )}
 
                 <div className="flex justify-between text-gray-600">
-                  <span>GST (18%)</span>
-                  <span className="font-semibold text-gray-900">
-                    ₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span>GST (Included)</span>
+                  <span className="font-semibold text-green-600">
+                    Inclusive
                   </span>
                 </div>
 
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
-                  {shipping === 0 ? (
-                    <span className="font-bold text-green-600">FREE</span>
-                  ) : (
-                    <span className="font-semibold text-gray-900">₹{shipping}</span>
-                  )}
+                  <span className="font-bold text-green-600">FREE</span>
                 </div>
-
-                {subtotal < 999 && subtotal > 0 && (
-                  <div className="bg-blue-50 -mx-6 px-6 py-3 text-xs text-blue-700">
-                    Add ₹{(999 - subtotal).toLocaleString()} more to get FREE shipping!
-                  </div>
-                )}
               </div>
 
               <div className="pt-4 border-t-2 border-gray-200 mb-6">

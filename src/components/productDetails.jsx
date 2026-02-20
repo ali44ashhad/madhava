@@ -89,6 +89,7 @@ const ProductDetails = () => {
       imageUrl: selectedSku?.imageUrl || product.images?.[0]?.url || product.images?.[0] || "https://placehold.co/200x200?text=Product",
       image: selectedSku?.imageUrl || product.images?.[0]?.url || product.images?.[0] || "https://placehold.co/200x200?text=Product",
       sku: selectedSku,
+      skuId: selectedSku.id || selectedSku._id,
       stockQuantity: selectedSku.stockQuantity,
       category: product.category?.name,
       subcategory: product.subcategory?.name,
