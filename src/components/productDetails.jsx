@@ -38,6 +38,11 @@ const ProductDetails = () => {
           ? await getStoreProductById(idOrSlug)
           : await getStoreProductBySlug(idOrSlug);
         setProduct(data || null);
+
+        // Auto-select the first SKU
+        if (data?.skus?.length > 0) {
+          setSelectedSku(data.skus[0]);
+        }
       } catch (err) {
         console.error("Failed to load product", err);
         setError("Unable to load product details. Please try again.");
@@ -49,12 +54,12 @@ const ProductDetails = () => {
     fetchProduct();
   }, [idOrSlug, isUuid]);
 
-  const primarySku = product?.skus?.[0] || null;
+  const [selectedSku, setSelectedSku] = useState(null);
 
   const calculateDiscount = () => {
-    if (!primarySku?.mrp || !primarySku?.sellingPrice) return null;
-    const mrp = Number(primarySku.mrp);
-    const sp = Number(primarySku.sellingPrice);
+    if (!selectedSku?.mrp || !selectedSku?.sellingPrice) return null;
+    const mrp = Number(selectedSku.mrp);
+    const sp = Number(selectedSku.sellingPrice);
     if (!mrp || !sp || mrp <= sp) return null;
     const off = Math.round(((mrp - sp) / mrp) * 100);
     return `${off}% OFF`;
@@ -62,7 +67,7 @@ const ProductDetails = () => {
 
   const handleQuantityChange = (type) => {
     if (type === "increase") {
-      if (primarySku?.stockQuantity && quantity < primarySku.stockQuantity) {
+      if (selectedSku?.stockQuantity && quantity < selectedSku.stockQuantity) {
         setQuantity(prev => prev + 1);
       }
     } else if (type === "decrease" && quantity > 1) {
@@ -71,20 +76,20 @@ const ProductDetails = () => {
   };
 
   const handleAddToCart = () => {
-    if (!product || !primarySku) return;
+    if (!product || !selectedSku) return;
 
     // Prepare cart item data
     const cartItem = {
       id: product.id || product._id,
       productId: product.id || product._id,
       name: product.name,
-      price: Number(primarySku.sellingPrice),
-      mrp: Number(primarySku.mrp),
+      price: Number(selectedSku.sellingPrice),
+      mrp: Number(selectedSku.mrp),
       quantity: quantity,
-      imageUrl: product.images?.[0]?.url || product.images?.[0] || "https://placehold.co/200x200?text=Product",
-      image: product.images?.[0]?.url || product.images?.[0] || "https://placehold.co/200x200?text=Product",
-      sku: primarySku,
-      stockQuantity: primarySku.stockQuantity,
+      imageUrl: selectedSku?.imageUrl || product.images?.[0]?.url || product.images?.[0] || "https://placehold.co/200x200?text=Product",
+      image: selectedSku?.imageUrl || product.images?.[0]?.url || product.images?.[0] || "https://placehold.co/200x200?text=Product",
+      sku: selectedSku,
+      stockQuantity: selectedSku.stockQuantity,
       category: product.category?.name,
       subcategory: product.subcategory?.name,
     };
@@ -98,7 +103,7 @@ const ProductDetails = () => {
   };
 
   const handleBuyNow = () => {
-    if (!product || !primarySku) return;
+    if (!product || !selectedSku) return;
 
     // First add to cart
     handleAddToCart();
@@ -109,13 +114,23 @@ const ProductDetails = () => {
     }, 300);
   };
 
-  const images = product?.images?.length
-    ? product.images
-    : [
-      {
-        url: "https://placehold.co/600x600?text=No+Image",
-      },
-    ];
+  const images = useMemo(() => {
+    let skuImages = [];
+    if (selectedSku?.images?.length) {
+      skuImages = selectedSku.images.map(img => img.url || img.imageUrl || img);
+    }
+
+    let prodImages = [];
+    if (product?.images?.length) {
+      prodImages = product.images.map(img => img.url || img.imageUrl || img);
+    }
+
+    // If SKU has images, use them. Else use product images. Else placeholder
+    if (skuImages.length > 0) return skuImages;
+    if (prodImages.length > 0) return prodImages;
+
+    return ["https://placehold.co/600x600?text=No+Image"];
+  }, [product, selectedSku]);
 
   if (loading) {
     return (
@@ -140,7 +155,7 @@ const ProductDetails = () => {
   }
 
   const discountLabel = calculateDiscount();
-  const isOutOfStock = !primarySku?.stockQuantity || primarySku.stockQuantity <= 0;
+  const isOutOfStock = !selectedSku?.stockQuantity || selectedSku.stockQuantity <= 0;
 
   return (
     <>
@@ -204,8 +219,8 @@ const ProductDetails = () => {
                     key={idx}
                     onClick={() => setSelectedImageIndex(idx)}
                     className={`flex-none w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${idx === selectedImageIndex
-                        ? "border-[#88013C] shadow-md scale-105"
-                        : "border-gray-200 hover:border-gray-300"
+                      ? "border-[#88013C] shadow-md scale-105"
+                      : "border-gray-200 hover:border-gray-300"
                       }`}
                   >
                     <img
@@ -226,8 +241,8 @@ const ProductDetails = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-semibold ${product.isActive
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
                     }`}
                 >
                   {product.isActive ? "In Stock" : "Out of Stock"}
@@ -241,25 +256,59 @@ const ProductDetails = () => {
                 {product.name}
               </h1>
 
-              {/* Description - Now directly below the title */}
+              {/* Description */}
               <div className="border-l-4 border-[#88013C] pl-4 py-2">
                 <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
                   {product.description || "No description available for this item."}
                 </p>
               </div>
+
+              {/* SKU Selection View */}
+              {product.skus && product.skus.length > 1 && (
+                <div className="mt-4 border-t border-gray-100 pt-4">
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">Available Options</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {product.skus.map((sku) => {
+                      // Formulate a label for the SKU button
+                      const label = [sku.size, sku.color, sku.material].filter(Boolean).join(" - ") || sku.skuCode || `Option ${product.skus.indexOf(sku) + 1}`;
+                      const isSelected = selectedSku?.id === sku.id;
+                      const isSkuOutOfStock = !sku.stockQuantity || sku.stockQuantity <= 0;
+
+                      return (
+                        <button
+                          key={sku.id}
+                          onClick={() => {
+                            setSelectedSku(sku);
+                            setQuantity(1); // Reset quantity when variant changes
+                          }}
+                          className={`
+                            px-4 py-2 rounded-xl text-sm font-semibold transition-all border-2
+                            ${isSelected
+                              ? "border-[#88013C] bg-[#88013C]/5 text-[#88013C] shadow-sm transform scale-[1.02]"
+                              : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"}
+                            ${isSkuOutOfStock && !isSelected ? "opacity-50 line-through decoration-1" : ""}
+                          `}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Price Block */}
-            {primarySku && (
-              <div className="rounded-xl p-5 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
+            {selectedSku && (
+              <div className="rounded-xl p-5 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 transition-all duration-300">
                 <div className="flex items-end gap-3 mb-3">
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl sm:text-4xl font-bold text-[#88013C]">
-                      ₹{primarySku.sellingPrice}
+                      ₹{selectedSku.sellingPrice}
                     </span>
-                    {primarySku.mrp && primarySku.mrp > primarySku.sellingPrice && (
+                    {selectedSku.mrp && selectedSku.mrp > selectedSku.sellingPrice && (
                       <span className="text-base sm:text-lg text-gray-400 line-through">
-                        ₹{primarySku.mrp}
+                        ₹{selectedSku.mrp}
                       </span>
                     )}
                   </div>
@@ -271,17 +320,17 @@ const ProductDetails = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {primarySku.festivePrice && (
+                  {selectedSku.festivePrice && (
                     <span className="px-2.5 py-1 rounded-full bg-pink-100 text-pink-700 font-medium">
-                      Festive: ₹{primarySku.festivePrice}
+                      Festive: ₹{selectedSku.festivePrice}
                     </span>
                   )}
-                  {primarySku.gstPercent && (
+                  {selectedSku.gstPercent && (
                     <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
-                      GST {primarySku.gstPercent}%
+                      GST {selectedSku.gstPercent}%
                     </span>
                   )}
-                  {primarySku.isCodAllowed && (
+                  {selectedSku.isCodAllowed && (
                     <span className="px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">
                       COD Available
                     </span>
@@ -307,15 +356,15 @@ const ProductDetails = () => {
                   </span>
                   <button
                     onClick={() => handleQuantityChange("increase")}
-                    disabled={isOutOfStock || (primarySku?.stockQuantity && quantity >= primarySku.stockQuantity)}
+                    disabled={isOutOfStock || (selectedSku?.stockQuantity && quantity >= selectedSku.stockQuantity)}
                     className="px-4 py-3 bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <Plus className="w-4 h-4 text-gray-700" />
                   </button>
                 </div>
                 <span className="text-sm text-gray-500">
-                  {primarySku?.stockQuantity && primarySku.stockQuantity > 0
-                    ? `${primarySku.stockQuantity} available`
+                  {selectedSku?.stockQuantity && selectedSku.stockQuantity > 0
+                    ? `${selectedSku.stockQuantity} available`
                     : "Out of stock"}
                 </span>
               </div>
@@ -342,24 +391,25 @@ const ProductDetails = () => {
             </div>
 
             {/* Product Specifications */}
-            {primarySku && (
-              <div className="rounded-xl p-5 bg-white border border-gray-200">
+            {selectedSku && (
+              <div className="rounded-xl p-5 bg-white border border-gray-200 mt-2">
                 <h2 className="text-base font-bold mb-4 text-gray-900">
                   Product Specifications
                 </h2>
                 <div className="space-y-3">
                   {[
-                    { label: "Size", value: primarySku.size },
-                    { label: "Weight", value: primarySku.weight },
-                    { label: "Material", value: primarySku.material },
-                    { label: "Color", value: primarySku.color },
+                    { label: "SKU Code", value: selectedSku.skuCode },
+                    { label: "Size", value: selectedSku.size },
+                    { label: "Weight", value: selectedSku.weight },
+                    { label: "Material", value: selectedSku.material },
+                    { label: "Color", value: selectedSku.color },
                   ].map((spec, idx) =>
                     spec.value ? (
-                      <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                      <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 hover:bg-gray-50 px-2 transition-colors rounded">
                         <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                           {spec.label}
                         </span>
-                        <span className="font-medium text-gray-900 capitalize">
+                        <span className="font-medium text-gray-900 capitalize text-right ml-4">
                           {spec.value}
                         </span>
                       </div>

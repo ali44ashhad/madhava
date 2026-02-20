@@ -246,6 +246,7 @@ const Navbar = () => {
               <Link to="/god-dresses"><li>God Dresses</li></Link>
               <Link to="/home-decor"><li>Home Decor</li></Link>
               <Link to="/god-statues"><li>Statues/Idols</li></Link>
+              <Link to="/categories"><li className="text-[#88013C]">All Categories</li></Link>
 
               {/* Fest Dropdown */}
               <li
@@ -608,6 +609,9 @@ const Navbar = () => {
                   </Link>
                   <Link to="/god-statues" onClick={closeMobileMenu}>
                     <li className="py-4 border-b font-bold">Statues/Idols</li>
+                  </Link>
+                  <Link to="/categories" onClick={closeMobileMenu}>
+                    <li className="py-4 border-b font-bold text-[#88013C]">All Categories</li>
                   </Link>
 
                   <li className="border-b">

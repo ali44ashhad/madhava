@@ -41,6 +41,7 @@ import Disclaimer from './pages/policies/Disclaimer'
 // products
 
 // products
+import Categories from './pages/categories/Categories';
 
 import Products from './components/Products';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -162,6 +163,7 @@ function App() {
         <Route path='/home-decor/:slug' element={<ProductDetails />} />
         <Route path='/god-statues' element={<GiftHero />} />
         <Route path='/category/:slug' element={<CommonLayout />} />
+        <Route path='/categories' element={<Categories />} />
         <Route path='/product/:id' element={<ProductDetails />} />
 
         <Route path='/pooja-thali' element={<PoojaThali />} />
