@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import images from "../../assets/images";
-import { homedecorProducts } from "../../data/data";
+// import { homedecorProducts } from "../../data/data";
 import { getStoreProducts } from "../../utils/storeApi";
 import ProductCard from "../../components/ProductCard";
 
@@ -41,7 +41,7 @@ const GiftHero = () => {
     };
   }, []);
 
-  const list = products.length ? products : homedecorProducts;
+  const list = products;
 
   return (
     <>

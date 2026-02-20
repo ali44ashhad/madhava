@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
-import { ReviewsData } from '../../data/data';
+import { ReviewsData } from '../../utils/constants';
 
 const Reviews = () => {
   const [currentIndex, setCurrentIndex] = useState(0);

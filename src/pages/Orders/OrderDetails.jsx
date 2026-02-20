@@ -3,58 +3,65 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, Package, Calendar, MapPin, Phone, Truck, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getOrderById } from '../../api/orderApi';
 
 const OrderDetails = () => {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedOrders = localStorage.getItem('orders');
-    if (savedOrders) {
-      try {
-        const parsedOrders = JSON.parse(savedOrders);
-        const foundOrder = parsedOrders.find(o => o.id === id);
-        if (foundOrder) {
-          // Verify ownership if authenticated
-          if (isAuthenticated && user && foundOrder.userId !== user.id) {
-            navigate('/orders');
-            return;
-          }
-          setOrder(foundOrder);
-        } else {
-          navigate('/orders');
-        }
-      } catch (error) {
-        console.error('Error loading order:', error);
-        navigate('/orders');
-      }
-    } else {
-      navigate('/orders');
+    if (isAuthenticated && id) {
+      fetchOrder();
+    } else if (!isAuthenticated) {
+      navigate('/login');
     }
-  }, [id, user, isAuthenticated, navigate]);
+  }, [id, isAuthenticated, navigate]);
 
-  if (!order) {
+  const fetchOrder = async () => {
+    try {
+      setLoading(true);
+      const data = await getOrderById(id);
+      setOrder(data);
+    } catch (error) {
+      console.error('Error loading order:', error);
+      navigate('/orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatAddress = (addressSnapshot) => {
+    if (!addressSnapshot) return '';
+    const addr = typeof addressSnapshot === 'string' ? JSON.parse(addressSnapshot) : addressSnapshot;
+    return `${addr.line1}, ${addr.line2 ? addr.line2 + ', ' : ''}${addr.city}, ${addr.state} - ${addr.pincode}`;
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#eff4f7] to-white flex items-center justify-center pt-32">
         <div className="text-center">
-          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-[#88013C] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading order details...</p>
         </div>
       </div>
     );
   }
 
+  if (!order) return null;
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Delivered':
+      case 'DELIVERED':
         return 'bg-green-100 text-green-800 border-green-300';
-      case 'Shipped':
+      case 'SHIPPED':
         return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'Processing':
+      case 'PLACED':
+      case 'CONFIRMED':
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'Cancelled':
+      case 'CANCELLED':
         return 'bg-red-100 text-red-800 border-red-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
@@ -63,9 +70,9 @@ const OrderDetails = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Delivered':
+      case 'DELIVERED':
         return <CheckCircle className="w-5 h-5" />;
-      case 'Shipped':
+      case 'SHIPPED':
         return <Truck className="w-5 h-5" />;
       default:
         return <Package className="w-5 h-5" />;
@@ -92,10 +99,10 @@ const OrderDetails = () => {
         >
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Order #{order.id.slice(-8)}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Order #{order.orderNumber}</h1>
               <p className="text-gray-600 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Placed on {new Date(order.date).toLocaleDateString('en-US', {
+                Placed on {new Date(order.placedAt).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -118,21 +125,21 @@ const OrderDetails = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Items</p>
-              <p className="text-xl font-bold text-gray-900">{order.items.length}</p>
+              <p className="text-xl font-bold text-gray-900">{order.orderItems?.length || 0}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Subtotal</p>
-              <p className="text-xl font-bold text-gray-900">₹{order.total.toLocaleString()}</p>
+              <p className="text-xl font-bold text-gray-900">₹{(Number(order.totalAmount) - (Number(order.shippingCost) || 0) - (Number(order.tax) || 0)).toLocaleString()}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-              <p className="text-xl font-bold text-[#88013C]">₹{order.total.toLocaleString()}</p>
+              <p className="text-xl font-bold text-[#88013C]">₹{Number(order.totalAmount).toLocaleString()}</p>
             </div>
           </div>
         </motion.div>
 
         {/* Shipping Address */}
-        {order.shippingAddress && (
+        {order.addressSnapshot && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -143,7 +150,7 @@ const OrderDetails = () => {
               <MapPin className="w-5 h-5 text-[#88013C]" />
               Shipping Address
             </h2>
-            <p className="text-gray-700">{order.shippingAddress}</p>
+            <p className="text-gray-700">{formatAddress(order.addressSnapshot)}</p>
           </motion.div>
         )}
 
@@ -156,20 +163,20 @@ const OrderDetails = () => {
         >
           <h2 className="text-xl font-bold text-gray-900 mb-6">Order Items</h2>
           <div className="space-y-4">
-            {order.items.map((item, index) => (
+            {order.orderItems?.map((item, index) => (
               <div
                 key={index}
                 className="flex flex-col sm:flex-row gap-4 p-4 border rounded-xl hover:shadow-md transition"
               >
                 <img
-                  src={item.image || 'https://via.placeholder.com/150'}
-                  alt={item.name}
+                  src={item.sku?.image || item.sku?.images?.[0] || 'https://via.placeholder.com/150'}
+                  alt={item.productName}
                   className="w-24 h-24 object-cover rounded-lg"
                 />
                 <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 mb-1">{item.name}</h3>
+                  <h3 className="font-bold text-gray-900 mb-1">{item.productName}</h3>
                   <p className="text-sm text-gray-600 mb-2">Quantity: {item.quantity}</p>
-                  <p className="text-lg font-bold text-[#88013C]">₹{(item.price * item.quantity).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-[#88013C]">₹{Number(item.sellingPrice).toLocaleString()}</p>
                 </div>
               </div>
             ))}

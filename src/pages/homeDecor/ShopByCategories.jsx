@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import images from '../../assets/images';
-import { homedecorProducts } from '../../data/data';
+// import { homedecorProducts } from '../../data/data';
 import { getStoreProducts } from '../../utils/storeApi';
 import ProductCard from '../../components/ProductCard';
 
@@ -34,14 +34,14 @@ const ShopByCategories = () => {
     };
   }, []);
 
-  const list = products.length ? products : homedecorProducts;
+  const list = products;
 
   return (
     <>
       {/* hero section */}
       <div className="w-full bg-[#f8f9fa] pt-[72px] md:pt-[80px]">
         <section className="relative w-full min-h-[calc(100vh-72px)] flex flex-col md:flex-row overflow-hidden">
-          {/* LEFT : IMAGE */}  
+          {/* LEFT : IMAGE */}
           <div className="w-full md:w-1/2 relative aspect-[4/3] md:aspect-auto md:min-h-full">
             <img
               src={images.orderHeroPage}

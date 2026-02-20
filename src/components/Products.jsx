@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import CircleLoader from "react-spinners/CircleLoader"
 import { getStoreProducts } from '../utils/storeApi';
 import ProductCard from './ProductCard';
 
@@ -48,8 +49,8 @@ const Products = () => {
         const list = Array.isArray(payload?.products)
           ? payload.products
           : Array.isArray(payload)
-          ? payload
-          : [];
+            ? payload
+            : [];
 
         const pag = payload?.pagination || {
           page,
@@ -140,7 +141,9 @@ const Products = () => {
           {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
           {loading ? (
-            <p className="text-gray-500 text-sm">Loading products…</p>
+            <div className="flex justify-center items-center py-20">
+              <CircleLoader color="#88013c" size={50} />
+            </div>
           ) : (
             <>
               <div className="grid gap-4 sm:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -185,7 +188,9 @@ const Products = () => {
           </h2>
 
           {loading ? (
-            <p className="text-gray-500 text-sm">Loading…</p>
+            <div className="flex justify-center items-center py-20">
+              <CircleLoader color="#88013c" size={50} />
+            </div>
           ) : (
             <>
               <div className="grid gap-4 sm:gap-6 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

@@ -5,29 +5,51 @@ import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState('login'); // 'login' | 'otp'
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { loginRequestOtp, loginVerifyOtp } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (phone.length < 10) {
+      setError('Enter a valid phone number');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      if (!email || !password) {
-        setError('Please fill in all fields');
-        setIsLoading(false);
-        return;
-      }
+      await loginRequestOtp(phone);
+      setStep('otp');
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      await login(email, password);
+  const handleVerify = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (otp.length !== 6) {
+      setError('OTP must be 6 digits');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await loginVerifyOtp(phone, otp);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.error || err.message || 'Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -42,8 +64,12 @@ const Login = () => {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {step === 'login' ? 'Welcome Back' : 'Verify Login'}
+          </h1>
+          <p className="text-gray-600">
+            {step === 'login' ? 'Sign in with your phone' : `Enter OTP sent to ${phone}`}
+          </p>
         </div>
 
         {error && (
@@ -52,55 +78,66 @@ const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-              Email Address
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition"
-              placeholder="Enter your email"
-              required
-            />
-          </div>
+        {step === 'login' ? (
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition"
+                placeholder="Enter your phone number"
+                required
+              />
+            </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#88013C] text-white py-3 rounded-full font-semibold hover:bg-[#6a0129] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Sending OTP...' : 'Send OTP'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify} className="space-y-6">
+            <div>
+              <label htmlFor="otp" className="block text-sm font-semibold text-gray-700 mb-2">
+                Enter OTP
+              </label>
+              <input
+                type="text"
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition text-center tracking-widest text-lg"
+                placeholder="XXXXXX"
+                maxLength={6}
+                required
+              />
+            </div>
 
-          <div className="flex items-center justify-between">
-            <label className="flex items-center">
-              <input type="checkbox" className="w-4 h-4 text-[#88013C] border-gray-300 rounded focus:ring-[#88013C]" />
-              <span className="ml-2 text-sm text-gray-600">Remember me</span>
-            </label>
-            <Link to="/forgot-password" className="text-sm text-[#88013C] hover:underline font-semibold">
-              Forgot Password?
-            </Link>
-          </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#88013C] text-white py-3 rounded-full font-semibold hover:bg-[#6a0129] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Verifying...' : 'Verify & Login'}
+            </button>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-[#88013C] text-white py-3 rounded-full font-semibold hover:bg-[#6a0129] transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+            <button
+              type="button"
+              onClick={() => setStep('login')}
+              className="w-full text-gray-600 text-sm hover:underline mt-2 text-center block"
+            >
+              Change Phone Number
+            </button>
+          </form>
+        )}
 
         <div className="mt-6 text-center">
           <p className="text-gray-600 text-sm">

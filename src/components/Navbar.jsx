@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { 
-  Search, User, ShoppingBag, Menu, X, ChevronDown, Plus, Minus, MapPin, Heart, ChevronRight 
+import {
+  Search, User, ShoppingBag, Menu, X, ChevronDown, Plus, Minus, MapPin, Heart, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,17 +15,16 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState('login'); // 'login' or 'signup'
+
   const [selectedAddressLabel, setSelectedAddressLabel] = useState('Select Address');
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
-  const { isAuthenticated, user, logout, login, signup } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
 
   // Mobile States
-  const [mobileCatExpanded, setMobileCatExpanded] = useState(true); 
-  const [showAllCategories, setShowAllCategories] = useState(false); 
+  const [mobileCatExpanded, setMobileCatExpanded] = useState(true);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const [mobileMoreExpanded, setMobileMoreExpanded] = useState(false);
 
   const closeMobileMenu = () => setIsMenuOpen(false);
@@ -237,7 +236,7 @@ const Navbar = () => {
             <ul className="hidden min-[992px]:flex items-center space-x-8 font-semibold text-[14px] text-gray-800">
               <Link to="/"><li>Home</li></Link>
 
-              <li 
+              <li
                 className="relative py-2 cursor-pointer flex items-center gap-1 group select-none"
                 onClick={() => setIsCategoriesOpen((v) => !v)}
               >
@@ -249,7 +248,7 @@ const Navbar = () => {
               <Link to="/god-statues"><li>Statues/Idols</li></Link>
 
               {/* Fest Dropdown */}
-              <li 
+              <li
                 className="relative py-2 cursor-pointer flex items-center gap-1"
                 onMouseEnter={() => setIsMoreOpen(true)}
                 onMouseLeave={() => setIsMoreOpen(false)}
@@ -348,24 +347,18 @@ const Navbar = () => {
               {/* AUTH DESKTOP */}
               {!isAuthenticated ? (
                 <div className="hidden md:flex items-center gap-3">
-                  <button 
-                    onClick={() => {
-                      setAuthMode('login');
-                      setShowAuthModal(true);
-                    }} 
+                  <Link
+                    to="/login"
                     className="text-sm font-semibold hover:text-[#88013C] transition"
                   >
                     Login
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setShowAuthModal(true);
-                    }} 
+                  </Link>
+                  <Link
+                    to="/signup"
                     className="bg-[#88013C] text-white text-sm px-4 py-2 rounded-full hover:bg-[#6a0129] transition"
                   >
                     Sign Up
-                  </button>
+                  </Link>
                 </div>
               ) : (
                 <Link to="/profile" className="relative group">
@@ -406,7 +399,7 @@ const Navbar = () => {
                 'Add delivery location to check extra discount'
               )}
             </span>
-        
+
           </button>
         </div>
       </div>
@@ -414,7 +407,7 @@ const Navbar = () => {
       {/* DESKTOP MEGA MENU (Ornaments → Category → Products → Product Details) */}
       <AnimatePresence>
         {isCategoriesOpen && (
-          <motion.div 
+          <motion.div
             className="hidden min-[992px]:block absolute top-full left-0 w-full bg-white border-t shadow-2xl z-40 pt-2"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -523,30 +516,24 @@ const Navbar = () => {
                 {/* AUTH MOBILE */}
                 {!isAuthenticated ? (
                   <div className="flex gap-3 mb-4">
-                    <button 
-                      onClick={() => {
-                        setAuthMode('login');
-                        setShowAuthModal(true);
-                        closeMobileMenu();
-                      }} 
-                      className="w-full border border-[#88013C] text-[#88013C] py-2 rounded-full font-bold hover:bg-[#88013C] hover:text-white transition"
+                    <Link
+                      to="/login"
+                      onClick={closeMobileMenu}
+                      className="w-full border border-[#88013C] text-[#88013C] py-2 rounded-full font-bold hover:bg-[#88013C] hover:text-white transition text-center"
                     >
                       Login
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setAuthMode('signup');
-                        setShowAuthModal(true);
-                        closeMobileMenu();
-                      }} 
-                      className="w-full bg-[#88013C] text-white py-2 rounded-full font-bold hover:bg-[#6a0129] transition"
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={closeMobileMenu}
+                      className="w-full bg-[#88013C] text-white py-2 rounded-full font-bold hover:bg-[#6a0129] transition text-center"
                     >
                       Sign Up
-                    </button>
+                    </Link>
                   </div>
                 ) : (
-                  <Link 
-                    to="/profile" 
+                  <Link
+                    to="/profile"
                     onClick={closeMobileMenu}
                     className="flex items-center justify-between border p-3 rounded-lg mb-4 hover:bg-gray-50 transition"
                   >
@@ -554,12 +541,12 @@ const Navbar = () => {
                       <User />
                       <span className="font-bold">{user?.name || 'My Account'}</span>
                     </div>
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.preventDefault();
                         logout();
                         closeMobileMenu();
-                      }} 
+                      }}
                       className="text-red-500 text-sm hover:text-red-700"
                     >
                       Logout
@@ -647,9 +634,9 @@ const Navbar = () => {
 
       {/* AUTH MODAL (unchanged) */}
       <AnimatePresence>
-        {showAuthModal && (
+        {/* {showAuthModal && (
           <>
-            <div 
+            <div
               className="fixed inset-0 bg-black/60 z-[100]"
               onClick={() => setShowAuthModal(false)}
             />
@@ -677,7 +664,7 @@ const Navbar = () => {
                       <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
                       <p className="text-gray-600">Sign in to your account</p>
                     </div>
-                    <form 
+                    <form
                       onSubmit={async (e) => {
                         e.preventDefault();
                         const formData = new FormData(e.target);
@@ -749,12 +736,12 @@ const Navbar = () => {
                         const email = formData.get('email');
                         const password = formData.get('password');
                         const confirmPassword = formData.get('confirmPassword');
-                        
+
                         if (password !== confirmPassword) {
                           alert('Passwords do not match');
                           return;
                         }
-                        
+
                         try {
                           await signup(name, email, password);
                           setShowAuthModal(false);
@@ -832,10 +819,10 @@ const Navbar = () => {
                     </div>
                   </div>
                 )}
-              </motion.div> 
+              </motion.div>
             </motion.div>
           </>
-        )}
+        )} */}
       </AnimatePresence>
     </nav>
   );

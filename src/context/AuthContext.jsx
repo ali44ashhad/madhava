@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authApi } from '../api/authApi';
 
 const AuthContext = createContext();
 
@@ -11,89 +12,73 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [customer, setCustomer] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount
+  // Initialize auth state
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error loading user from localStorage:', error);
-        setUser(null);
-      }
-    }
+    // Phase 2: No refresh token flow yet.
+    // On reload, user is logged out because accessToken is in memory only.
     setIsLoading(false);
   }, []);
 
-  // Save user to localStorage whenever it changes
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('user');
-    }
-  }, [user]);
-
-  const login = (email, password) => {
-    // Simulate login - in real app, this would be an API call
-    const userData = {
-      id: Date.now().toString(),
-      email,
-      name: email.split('@')[0],
-      createdAt: new Date().toISOString(),
-    };
-    setUser(userData);
-    return Promise.resolve(userData);
+  const setSession = (data) => {
+    const { accessToken, customer } = data;
+    window.__ACCESS_TOKEN__ = accessToken;
+    setCustomer(customer);
+    setIsAuthenticated(true);
   };
 
-  const signup = (name, email, password) => {
-    // Simulate signup - in real app, this would be an API call
-    const userData = {
-      id: Date.now().toString(),
-      name,
-      email,
-      createdAt: new Date().toISOString(),
-    };
-    setUser(userData);
-    return Promise.resolve(userData);
+  const clearSession = () => {
+    window.__ACCESS_TOKEN__ = null;
+    setCustomer(null);
+    setIsAuthenticated(false);
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('orders'); // Clear orders on logout
+  // --- Auth Actions ---
+
+  const signupRequestOtp = async (data) => {
+    return await authApi.signupRequestOtp(data);
   };
 
-  const deleteAccount = () => {
-    if (user) {
-      const userId = user.id;
-      // Clear user data
-      setUser(null);
-      localStorage.removeItem('user');
-      
-      // Clear user-specific data
-      localStorage.removeItem('orders');
-      localStorage.removeItem(`wishlist_${userId}`);
-      localStorage.removeItem(`addresses_${userId}`);
-      localStorage.removeItem(`shared_products_${userId}`);
+  const signupVerifyOtp = async (data) => {
+    const response = await authApi.signupVerifyOtp(data);
+    setSession(response);
+    return response;
+  };
+
+  const loginRequestOtp = async (phone) => {
+    return await authApi.loginRequestOtp(phone);
+  };
+
+  const loginVerifyOtp = async (phone, otp) => {
+    const response = await authApi.loginVerifyOtp(phone, otp);
+    setSession(response);
+    return response;
+  };
+
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error("Logout failed", error);
+    } finally {
+      clearSession();
     }
   };
-
-  const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        login,
-        signup,
-        logout,
-        deleteAccount,
+        customer,
         isAuthenticated,
         isLoading,
+        signupRequestOtp,
+        signupVerifyOtp,
+        loginRequestOtp,
+        loginVerifyOtp,
+        logout,
       }}
     >
       {children}

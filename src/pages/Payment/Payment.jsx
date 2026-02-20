@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, CreditCard, Smartphone, Building2, Wallet, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { createOrder } from '../../api/orderApi';
 
 const Payment = () => {
   const { cart, getCartTotal, clearCart } = useCart();
@@ -49,12 +50,24 @@ const Payment = () => {
     }
   }, [isAuthenticated, cart.length, address, navigate]);
 
+  const products = location.state?.products || cart;
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setPaymentData(prev => ({
       ...prev,
       [name]: value,
     }));
+  };
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
   };
 
   const handlePayment = async () => {
@@ -82,41 +95,84 @@ const Payment = () => {
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // 1. Prepare Order Payload
+      const paymentMethod = selectedMethod === 'cod' ? 'COD' : 'RAZORPAY';
+      const items = products.map(item => ({
+        skuId: item.productId || item.id, // Handle both cart items and direct buy items
+        quantity: item.quantity
+      }));
 
-    // Create order
-    const order = {
-      id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      userId: user.id,
-      items: cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image || item.images?.[0] || item.img,
-      })),
-      total: grandTotal,
-      subtotal,
-      tax,
-      shipping,
-      discount,
-      paymentMethod: selectedMethod,
-      status: 'Processing',
-      date: new Date().toISOString(),
-      shippingAddress: address,
-    };
+      const orderPayload = {
+        customerId: user.id,
+        addressId: address.id,
+        paymentMethod,
+        paymentReference: null, // Will be updated for Razorpay later if needed, but backend takes it null initially
+        items
+      };
 
-    const existingOrders = localStorage.getItem('orders');
-    const orders = existingOrders ? JSON.parse(existingOrders) : [];
-    orders.push(order);
-    localStorage.setItem('orders', JSON.stringify(orders));
+      // 2. Create Order
+      const response = await createOrder(orderPayload);
+      const { orderId, orderNumber, totalAmount, razorpayOrderId } = response; // Assuming backend returns this
 
-    // Clear cart after successful payment (as per user preference, but typically we clear it)
-    // clearCart(); // Commented as per user preference to keep cart
+      // 3. Handle Payment Flow
+      if (paymentMethod === 'COD') {
+        // Success for COD
+        // clearCart(); // If we want to clear cart on success
+        navigate('/orders', { replace: true });
+        alert(`Order Placed Successfully! Order # ${orderNumber}`);
+      } else {
+        // Handle Razorpay
+        const res = await loadRazorpay();
+        if (!res) {
+          alert('Razorpay SDK failed to load. Are you online?');
+          setIsProcessing(false);
+          return;
+        }
 
-    setIsProcessing(false);
-    navigate(`/orders/${order.id}`);
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Ensure this env var is set
+          amount: Math.round(grandTotal * 100), // Amount in paise
+          currency: 'INR',
+          name: 'Nesta Toys',
+          description: `Order #${orderNumber}`,
+          image: '/logo.png', // Add logo if available
+          order_id: razorpayOrderId, // If backend creates Razorpay order
+          handler: async function (response) {
+            // Success handler
+            // Verify payment on backend if endpoint exists, otherwise trust webhook
+            // For now, just navigate to success
+            alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
+            // clearCart()
+            navigate('/orders', { replace: true });
+          },
+          prefill: {
+            name: address.name,
+            email: user.email,
+            contact: address.phone,
+          },
+          notes: {
+            address: `${address.city}, ${address.state}`,
+          },
+          theme: {
+            color: '#88013C',
+          },
+        };
+
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.open();
+
+        paymentObject.on('payment.failed', function (response) {
+          alert(`Payment Failed: ${response.error.description}`);
+          setIsProcessing(false);
+        });
+      }
+
+    } catch (error) {
+      console.error('Payment failed:', error);
+      alert(error.response?.data?.message || 'Failed to place order. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
   if (!isAuthenticated || !address) {
@@ -153,6 +209,12 @@ const Payment = () => {
       name: 'Wallets',
       icon: Wallet,
       description: 'Paytm, PhonePe, Amazon Pay',
+    },
+    {
+      id: 'cod',
+      name: 'Cash on Delivery',
+      icon: Wallet,
+      description: 'Pay when you receive',
     },
   ];
 
@@ -193,17 +255,15 @@ const Payment = () => {
                     <div
                       key={method.id}
                       onClick={() => setSelectedMethod(method.id)}
-                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                        isSelected
-                          ? 'border-[#88013C] bg-[#88013C]/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${isSelected
+                        ? 'border-[#88013C] bg-[#88013C]/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                            isSelected ? 'bg-[#88013C] text-white' : 'bg-gray-100 text-gray-600'
-                          }`}
+                          className={`w-12 h-12 rounded-lg flex items-center justify-center ${isSelected ? 'bg-[#88013C] text-white' : 'bg-gray-100 text-gray-600'
+                            }`}
                         >
                           <Icon size={24} />
                         </div>
@@ -351,7 +411,7 @@ const Payment = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
-              
+
               {/* Product List */}
               <div className="space-y-3 mb-4 pb-4 border-b border-gray-200 max-h-60 overflow-y-auto">
                 {cart.map((item) => (

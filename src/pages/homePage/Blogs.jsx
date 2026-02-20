@@ -1,30 +1,29 @@
 import React, { useState } from 'react';
-import { ArrowRightCircle } from 'lucide-react'; 
-import { blogsData } from '../../data/data';
+import { ArrowRightCircle } from 'lucide-react';
+import { blogsData } from '../../utils/constants';
 
 const Blogs = () => {
   const [activeTab, setActiveTab] = useState('Popular');
 
   const tabs = ['Popular', 'Latest'];
-  
+
   return (
     <section className="w-full px-4 sm:px-6 lg:px-10 py-10">
       {/* Header Area */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="flex items-center gap-6">
           <h2 className="text-3xl font-bold border-b-4 border-red-500 pb-1">Blogs</h2>
-          
+
           {/* Tabs */}
           <div className="bg-gray-200 p-1 rounded-full">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
-                  activeTab === tab 
-                  ? 'bg-black text-white shadow-lg' 
-                  : 'text-gray-600 hover:text-black'
-                }`}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === tab
+                    ? 'bg-black text-white shadow-lg'
+                    : 'text-gray-600 hover:text-black'
+                  }`}
               >
                 {tab}
               </button>
@@ -43,9 +42,9 @@ const Blogs = () => {
           <div key={blog.id} className="bg-white rounded-[32px] overflow-hidden flex flex-col group shadow-sm hover:shadow-md transition-shadow">
             {/* Image Container */}
             <div className="relative h-48 overflow-hidden">
-              <img 
-                src={blog.image} 
-                alt={blog.title} 
+              <img
+                src={blog.image}
+                alt={blog.title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
             </div>
@@ -59,10 +58,10 @@ const Blogs = () => {
               <p className="text-gray-500 text-sm line-clamp-3 mb-6">
                 {blog.description}
               </p>
-              
+
               {/* Read More Button */}
               <button className="mt-auto w-full py-3 px-4 border border-gray-300 rounded-full flex items-center justify-center gap-2 font-bold text-gray-800 hover:bg-black hover:text-white transition-colors duration-300 group/btn">
-                Read More 
+                Read More
                 <ArrowRightCircle size={18} className="group-hover/btn:translate-x-1 transition-transform" />
               </button>
             </div>

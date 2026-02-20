@@ -21,14 +21,13 @@ import PageNotFound from './components/PageNotFound'
 import Login from './pages/Auth/Login'
 import SignUp from './pages/Auth/SignUp'
 import Orders from './pages/Orders/Orders'
-import OrderDetails from './pages/Orders/OrderDetails'  
+import OrderDetails from './pages/Orders/OrderDetails'
 import Profile from './pages/Profile/Profile'
 import Checkout from './pages/Checkout/Checkout'
 import Payment from './pages/Payment/Payment'
 import CircleLoader from "react-spinners/CircleLoader"
 
-import AdminLogin from './pages/Auth/AdminLogin'
-import AdminDashboard from './pages/adminPages/AdminDashboard'
+
 
 
 // policies
@@ -41,7 +40,11 @@ import Disclaimer from './pages/policies/Disclaimer'
 
 // products
 
+// products
+
 import Products from './components/Products';
+import ProtectedRoute from './components/ProtectedRoute';
+import ApiErrorHandler from './components/ApiErrorHandler';
 
 function App() {
   const location = useLocation()
@@ -96,6 +99,7 @@ function App() {
   return (
     <>
       <Navbar />
+      <ApiErrorHandler />
 
 
       {/* 🔔 Audio */}
@@ -110,14 +114,14 @@ function App() {
         md:bottom-[-10] md:right-[-50]            /* tablets */
         lg:bottom-[-10px] lg:right-[-45px]           /* desktop */
       "
-      
-      animate={!isPlaying ? { rotate: [-10, 10] } : { rotate: 0 }}
-transition={{
-  repeat: !isPlaying ? Infinity : 0,
-  repeatType: "mirror",
-  duration: 1.2,   // ⬅️ Increase = slower
-  ease: "easeInOut"
-}}
+
+        animate={!isPlaying ? { rotate: [-10, 10] } : { rotate: 0 }}
+        transition={{
+          repeat: !isPlaying ? Infinity : 0,
+          repeatType: "mirror",
+          duration: 1.2,   // ⬅️ Increase = slower
+          ease: "easeInOut"
+        }}
       >
         <motion.button
           onClick={toggleBell}
@@ -133,10 +137,10 @@ transition={{
             <span className="absolute"></span>
           )}
 
-<img
-  src={images.krishnaFlute}
-  alt="bell"
-  className="
+          <img
+            src={images.krishnaFlute}
+            alt="bell"
+            className="
     relative z-10
     w-30 h-30        /* mobile default */
     sm:w-30 sm:h-30   
@@ -144,7 +148,7 @@ transition={{
     lg:w-40 lg:h-40  /* desktop */
     object-contain
   "
-/>
+          />
         </motion.button>
       </motion.div>
 
@@ -152,30 +156,35 @@ transition={{
 
       <Routes>
         <Route path='/' element={<Home />} />
-        <Route path='/cart' element={<Cart />} />
+
         <Route path='/god-dresses' element={<Personalize />} />
         <Route path='/home-decor' element={<ShopByCategories />} />
-        <Route path='/home-decor/:slug' element={<ProductDetails />}/>
+        <Route path='/home-decor/:slug' element={<ProductDetails />} />
         <Route path='/god-statues' element={<GiftHero />} />
         <Route path='/category/:slug' element={<CommonLayout />} />
-        <Route path='/product/:id' element={<ProductDetails/>}/>
+        <Route path='/product/:id' element={<ProductDetails />} />
 
-        <Route path='/pooja-thali' element={<PoojaThali />}/>
-        <Route path='/pooja-thali/:slug' element={<ProductDetails />}/>
+        <Route path='/pooja-thali' element={<PoojaThali />} />
+        <Route path='/pooja-thali/:slug' element={<ProductDetails />} />
 
-        <Route path="/diya-lamps" element={<DiyaLamps />}/>
-        <Route path='/diya-lamps/:slug' element={<ProductDetails />}/>
+        <Route path="/diya-lamps" element={<DiyaLamps />} />
+        <Route path='/diya-lamps/:slug' element={<ProductDetails />} />
 
-        <Route path="/mandir" element={<Mandir />}/>
-        <Route path='/mandir/:slug' element={<ProductDetails />}/>
+        <Route path="/mandir" element={<Mandir />} />
+        <Route path='/mandir/:slug' element={<ProductDetails />} />
 
         <Route path='/login' element={<Login />} />
         <Route path='/signup' element={<SignUp />} />
-        <Route path='/checkout' element={<Checkout />} />
-        <Route path='/payment' element={<Payment />} />
-        <Route path='/profile' element={<Profile />} />
-        <Route path='/orders' element={<Orders />} />
-        <Route path='/orders/:id' element={<OrderDetails />} />
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path='/cart' element={<Cart />} />
+          <Route path='/checkout' element={<Checkout />} />
+          <Route path='/payment' element={<Payment />} />
+          <Route path='/profile' element={<Profile />} />
+          <Route path='/orders' element={<Orders />} />
+          <Route path='/orders/:id' element={<OrderDetails />} />
+        </Route>
+
 
         <Route path="*" element={<PageNotFound />} />
 
@@ -185,15 +194,13 @@ transition={{
         <Route path='/shipping-policy' element={<Shipping />} />
         <Route path='/return-policy' element={<ReturnAndRefund />} />
         <Route path='/cancellation-policy' element={<Cancellation />} />
-        <Route path='/disclaimer' element={<Disclaimer />} /> 
+        <Route path='/disclaimer' element={<Disclaimer />} />
 
 
-{/* product coommon page */}
-<Route path='/products' element={<Products />} />
+        {/* product coommon page */}
+        <Route path='/products' element={<Products />} />
 
-        {/* Admin */}
-        <Route path='/admin-login' element={<AdminLogin />} />
-        <Route path='/admin-dashboard' element={<AdminDashboard />} />
+
       </Routes>
 
       <Footer />

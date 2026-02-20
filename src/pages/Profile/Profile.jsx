@@ -26,15 +26,7 @@ const Profile = () => {
   const [activeSection, setActiveSection] = useState('overview');
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="pt-40 min-h-screen flex items-center justify-center">
-        <Link to="/login" className="text-[#88013C] font-bold">
-          Please Login
-        </Link>
-      </div>
-    );
-  }
+
 
   const menuItems = [
     { id: 'overview', label: 'Profile Overview', icon: User },
@@ -170,7 +162,7 @@ export default Profile;
 // } from 'lucide-react';
 // import { motion, AnimatePresence } from 'framer-motion';
 
-// const API_BASE = 'http://localhost:5012/api/v1/store';
+
 
 // // 🔒 TEMP HARD-CODED CUSTOMER ID
 // const CUSTOMER_ID = '550e8400-e29b-41d4-a716-446655440000';

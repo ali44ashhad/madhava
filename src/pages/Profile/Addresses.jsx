@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, ChevronDown, ChevronUp } from 'lucide-react';
-import { API_BASE } from '../../config/api';
- 
-const CUSTOMER_ID = 'f5c1a26a-950f-4bf7-a3c8-e695df42b601';
+import { useAuth } from '../../context/AuthContext';
+import { STORE_ENDPOINTS } from '../../api/endpoints';
+import toast from 'react-hot-toast';
+import apiClient from '../../api/client';
+
 const SELECTED_ADDRESS_STORAGE_KEY = 'selectedAddress';
 
 const Addresses = () => {
+  const { customer } = useAuth();
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [open, setOpen] = useState(false);
@@ -24,8 +26,10 @@ const Addresses = () => {
   });
 
   useEffect(() => {
-    fetchAddresses();
-  }, []);
+    if (customer?.id) {
+      fetchAddresses();
+    }
+  }, [customer?.id]);
 
   // Load previously-selected address (for Navbar)
   useEffect(() => {
@@ -42,46 +46,72 @@ const Addresses = () => {
   }, []);
 
   const fetchAddresses = async () => {
-    const res = await axios.get(
-      `${API_BASE}/v1/store/addresses`,
-      { params: { customerId: CUSTOMER_ID } }
-    );
+    try {
+      const res = await apiClient.get(
+        STORE_ENDPOINTS.ADDRESSES,
+        { params: { customerId: customer.id } }
+      );
 
-    const data = res.data?.data || [];
-    setAddresses(data);
+      const data = res.data?.data || [];
+      setAddresses(data);
 
-    // ✅ auto select first address
-    if (data.length && !selectedAddress) {
-      setSelectedAddress(data[0]);
-      try {
-        localStorage.setItem(SELECTED_ADDRESS_STORAGE_KEY, JSON.stringify(data[0]));
-      } catch {
-        // ignore
+      // ✅ auto select first address
+      if (data.length && !selectedAddress) {
+        setSelectedAddress(data[0]);
+        try {
+          localStorage.setItem(SELECTED_ADDRESS_STORAGE_KEY, JSON.stringify(data[0]));
+        } catch {
+          // ignore
+        }
       }
+    } catch (error) {
+      console.error('Failed to fetch addresses:', error);
+      // Toast handled by client.js interceptor usually, but good to be safe if silent failure needed
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    await axios.post(`${API_BASE}/addresses`, {
-      customerId: CUSTOMER_ID,
-      ...form,
-      line2: form.line2 || null,
-    });
+    if (!customer?.id) {
+      toast.error('You must be logged in to add an address');
+      return;
+    }
 
-    setForm({
-      name: '',
-      phone: '',
-      line1: '',
-      line2: '',
-      city: '',
-      state: '',
-      pincode: '',
-    });
+    try {
+      // Basic validation
+      const cleanPhone = form.phone.replace(/\D/g, '');
+      if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+        toast.error('Phone number must be 10-15 digits');
+        return;
+      }
 
-    setShowForm(false);
-    fetchAddresses();
+      await apiClient.post(STORE_ENDPOINTS.ADDRESSES, {
+        customerId: customer.id,
+        ...form,
+        phone: cleanPhone,
+        line2: form.line2 || null,
+      });
+
+      toast.success('Address added successfully');
+
+      setForm({
+        name: '',
+        phone: '',
+        line1: '',
+        line2: '',
+        city: '',
+        state: '',
+        pincode: '',
+      });
+
+      setShowForm(false);
+      fetchAddresses();
+    } catch (error) {
+      console.error("Address add failed", error);
+      const msg = error.response?.data?.message || 'Failed to add address';
+      toast.error(msg);
+    }
   };
 
   return (
@@ -140,11 +170,10 @@ const Addresses = () => {
                   }
                   setOpen(false);
                 }}
-                className={`px-4 py-3 cursor-pointer hover:bg-gray-100 ${
-                  selectedAddress?.id === addr.id
-                    ? 'bg-[#88013C]/10 border-l-4 border-[#88013C]'
-                    : ''
-                }`}
+                className={`px-4 py-3 cursor-pointer hover:bg-gray-100 ${selectedAddress?.id === addr.id
+                  ? 'bg-[#88013C]/10 border-l-4 border-[#88013C]'
+                  : ''
+                  }`}
               >
                 <p className="font-medium text-sm">{addr.name}</p>
                 <p className="text-xs text-gray-600">
@@ -216,11 +245,10 @@ const Addresses = () => {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={`border p-4 rounded-lg ${
-                selectedAddress?.id === addr.id
-                  ? 'border-[#88013C]'
-                  : ''
-              }`}
+              className={`border p-4 rounded-lg ${selectedAddress?.id === addr.id
+                ? 'border-[#88013C]'
+                : ''
+                }`}
             >
               <h4 className="font-bold">{addr.name}</h4>
               <p className="text-sm">{addr.phone}</p>

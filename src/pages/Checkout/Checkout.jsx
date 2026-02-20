@@ -16,11 +16,9 @@ import {
 } from 'lucide-react';
 import {
   getAddresses,
-  saveAddress,
-  deleteAddress,
-  setDefaultAddress,
-  getDefaultAddress
-} from '../../utils/addressUtils';
+  createAddress,
+  deleteAddress
+} from '../../api/addressApi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Checkout = () => {
@@ -38,16 +36,16 @@ const Checkout = () => {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    address1: '',
-    address2: '',
+    line1: '',
+    line2: '',
     city: '',
     state: '',
     pincode: '',
-    landmark: '',
     isDefault: false,
   });
 
@@ -60,10 +58,10 @@ const Checkout = () => {
   const grandTotal = subtotal + tax + shipping;
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    // if (!isAuthenticated) {
+    //   navigate('/login');
+    //   return;
+    // }
 
     if (!buyNowProduct && cart.length === 0) {
       navigate('/cart');
@@ -73,13 +71,20 @@ const Checkout = () => {
     loadAddresses();
   }, [isAuthenticated, cart.length]);
 
-  const loadAddresses = () => {
-    if (!user) return;
-    const userAddresses = getAddresses(user.id);
-    setAddresses(userAddresses);
-    setSelectedAddress(
-      getDefaultAddress(user.id) || userAddresses[0] || null
-    );
+  const loadAddresses = async () => {
+    try {
+      setIsLoading(true);
+      const userAddresses = await getAddresses();
+      setAddresses(userAddresses);
+      // Select the first address as default if none selected
+      if (userAddresses.length > 0 && !selectedAddress) {
+        setSelectedAddress(userAddresses[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load addresses:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -90,42 +95,68 @@ const Checkout = () => {
     }));
   };
 
-  const handleSaveAddress = () => {
-    if (!user) return;
-
-    if (!formData.name || !formData.phone || !formData.address1 || 
-        !formData.city || !formData.state || !formData.pincode) {
+  const handleSaveAddress = async () => {
+    if (!formData.name || !formData.phone || !formData.line1 ||
+      !formData.city || !formData.state || !formData.pincode) {
       alert('Please fill all required fields');
       return;
     }
 
-    const addressData = {
-      ...formData,
-      id: isEditing ? editingAddress.id : Date.now().toString()
-    };
+    try {
+      setIsLoading(true);
+      const addressData = {
+        name: formData.name,
+        phone: formData.phone,
+        line1: formData.line1,
+        line2: formData.line2,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode,
+        isDefault: formData.isDefault
+      };
 
-    saveAddress(user.id, addressData);
+      // Note: Edit is treated as create new for now as backend update is not available
+      await createAddress(addressData);
 
-    if (formData.isDefault) {
-      setDefaultAddress(user.id, addressData.id);
+      await loadAddresses();
+      resetForm();
+    } catch (error) {
+      console.error('Failed to save address:', error);
+      alert('Failed to save address. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-
-    loadAddresses();
-    resetForm();
   };
 
   const handleEditAddress = (address) => {
-    setFormData(address);
+    // Mapping backend fields to form fields
+    setFormData({
+      name: address.name,
+      phone: address.phone,
+      line1: address.line1,
+      line2: address.line2 || '',
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+      isDefault: address.isDefault || false
+    });
     setEditingAddress(address);
     setIsEditing(true);
     setShowAddressForm(true);
   };
 
-  const handleDeleteAddress = (addressId) => {
-    if (!user) return;
+  const handleDeleteAddress = async (addressId) => {
     if (window.confirm('Are you sure you want to delete this address?')) {
-      deleteAddress(user.id, addressId);
-      loadAddresses();
+      try {
+        await deleteAddress(addressId);
+        await loadAddresses();
+        if (selectedAddress?.id === addressId) {
+          setSelectedAddress(null);
+        }
+      } catch (error) {
+        console.error('Failed to delete address:', error);
+        alert('Failed to delete address.');
+      }
     }
   };
 
@@ -133,12 +164,11 @@ const Checkout = () => {
     setFormData({
       name: '',
       phone: '',
-      address1: '',
-      address2: '',
+      line1: '',
+      line2: '',
       city: '',
       state: '',
       pincode: '',
-      landmark: '',
       isDefault: false,
     });
     setShowAddressForm(false);
@@ -167,14 +197,14 @@ const Checkout = () => {
     });
   };
 
-  if (!isAuthenticated) return null;
+
 
   return (
     <div className="pt-30 min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
 
         {/* HEADER */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
@@ -186,7 +216,7 @@ const Checkout = () => {
             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             <span className="font-medium">Back to {buyNowProduct ? 'Product' : 'Cart'}</span>
           </Link>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Secure Checkout</h1>
@@ -195,7 +225,7 @@ const Checkout = () => {
                 Your information is safe and secure
               </p>
             </div>
-            
+
             {/* Progress Steps */}
             <div className="hidden md:flex items-center gap-3">
               <div className="flex items-center gap-2">
@@ -228,7 +258,7 @@ const Checkout = () => {
           <div className="lg:col-span-2 space-y-6">
 
             {/* ORDER SUMMARY */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
@@ -243,7 +273,7 @@ const Checkout = () => {
 
               <div className="p-6 space-y-4">
                 {products.map((item, index) => (
-                  <motion.div 
+                  <motion.div
                     key={item.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -275,7 +305,7 @@ const Checkout = () => {
             </motion.div>
 
             {/* DELIVERY ADDRESS SECTION */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
@@ -357,8 +387,8 @@ const Checkout = () => {
                         </label>
                         <input
                           type="text"
-                          name="address1"
-                          value={formData.address1}
+                          name="line1"
+                          value={formData.line1}
                           onChange={handleInputChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition-all"
                           placeholder="House No., Building Name"
@@ -371,8 +401,8 @@ const Checkout = () => {
                         </label>
                         <input
                           type="text"
-                          name="address2"
-                          value={formData.address2}
+                          name="line2"
+                          value={formData.line2}
                           onChange={handleInputChange}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition-all"
                           placeholder="Street, Area"
@@ -422,20 +452,6 @@ const Checkout = () => {
                             maxLength="6"
                           />
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Landmark (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          name="landmark"
-                          value={formData.landmark}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent outline-none transition-all"
-                          placeholder="Near Police Station"
-                        />
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -492,11 +508,10 @@ const Checkout = () => {
                           <motion.div
                             key={address.id}
                             whileHover={{ scale: 1.01 }}
-                            className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all ${
-                              selectedAddress?.id === address.id
-                                ? 'border-[#88013C] bg-[#88013C]/5 shadow-md'
-                                : 'border-gray-200 hover:border-gray-300'
-                            }`}
+                            className={`relative p-5 rounded-xl border-2 cursor-pointer transition-all ${selectedAddress?.id === address.id
+                              ? 'border-[#88013C] bg-[#88013C]/5 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
+                              }`}
                             onClick={() => setSelectedAddress(address)}
                           >
                             {selectedAddress?.id === address.id && (
@@ -504,7 +519,7 @@ const Checkout = () => {
                                 <CheckCircle2 size={24} className="text-[#88013C]" />
                               </div>
                             )}
-                            
+
                             <div className="pr-12">
                               <div className="flex items-center gap-2 mb-2">
                                 <h4 className="font-bold text-gray-900">{address.name}</h4>
@@ -516,14 +531,9 @@ const Checkout = () => {
                               </div>
                               <p className="text-sm text-gray-600 mb-1">{address.phone}</p>
                               <p className="text-sm text-gray-600">
-                                {address.address1}, {address.address2 && `${address.address2}, `}
+                                {address.line1}, {address.line2 && `${address.line2}, `}
                                 {address.city}, {address.state} - {address.pincode}
                               </p>
-                              {address.landmark && (
-                                <p className="text-sm text-gray-500 mt-1">
-                                  Landmark: {address.landmark}
-                                </p>
-                              )}
                             </div>
 
                             <div className="flex items-center gap-2 mt-4">
@@ -615,11 +625,10 @@ const Checkout = () => {
                 <button
                   onClick={handleContinue}
                   disabled={!selectedAddress}
-                  className={`w-full py-4 rounded-xl font-bold text-white transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 ${
-                    selectedAddress
-                      ? 'bg-gradient-to-r from-[#88013C] to-[#a8014a] hover:shadow-lg'
-                      : 'bg-gray-300 cursor-not-allowed'
-                  }`}
+                  className={`w-full py-4 rounded-xl font-bold text-white transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 ${selectedAddress
+                    ? 'bg-gradient-to-r from-[#88013C] to-[#a8014a] hover:shadow-lg'
+                    : 'bg-gray-300 cursor-not-allowed'
+                    }`}
                 >
                   <Lock size={18} />
                   Continue to Payment

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { cartApi } from '../api/cartApi';
+import { useAuth } from './AuthContext';
 
 const CartContext = createContext();
 
@@ -12,77 +14,82 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useAuth();
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        setCart([]);
-      }
+  const fetchCart = async () => {
+    try {
+      const response = await cartApi.getCart();
+      // Map backend response to match frontend expectations
+      const items = response.data.items.map(item => ({
+        id: item.itemId,       // CartItem ID for updates/removes
+        productId: item.skuId, // Keep reference to product/sku ID
+        title: item.productName,
+        image: item.image,
+        price: item.sellingPrice,
+        quantity: item.quantity,
+        ...item.skuAttributes
+      }));
+      setCart(items);
+    } catch (error) {
+      console.error("Failed to fetch cart", error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
 
-  // Save cart to localStorage whenever it changes
+  // Sync cart with auth state
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isAuthenticated) {
+      fetchCart();
+    } else {
+      setCart([]);
+    }
+  }, [isAuthenticated]);
 
-  const addToCart = (product, quantity = 1) => {
-    setCart((prev) => {
-      // Use productId as primary key (fallback to id)
-      const key = product.productId || product.id;
-      if (!key) {
-        // No stable key, just append as standalone item
-        return [...prev, { ...product, quantity }];
-      }
-
-      const existingIndex = prev.findIndex((item) => item.id === key);
-
-      if (existingIndex !== -1) {
-        const updated = [...prev];
-        const existingItem = updated[existingIndex];
-        updated[existingIndex] = {
-          ...existingItem,
-          quantity: existingItem.quantity + quantity,
-        };
-        return updated;
-      }
-
-      // New cart item
-      return [
-        ...prev,
-        {
-          ...product,
-          id: key,          // ensure every item has id for Cart page
-          productId: key,   // keep productId too for clarity
-          quantity,
-        },
-      ];
-    });
-  };
-
-  const removeFromCart = (productId) => {
-    setCart((prev) => prev.filter((item) => item.id !== productId));
-  };
-
-  const updateQuantity = (productId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
+  const addToCart = async (product, quantity = 1) => {
+    if (!isAuthenticated) {
+      alert("Please login to use the cart.");
       return;
     }
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === productId ? { ...item, quantity } : item
-      )
-    );
+    try {
+      const skuId = product.productId || product.id;
+      await cartApi.addCartItem({ skuId, quantity });
+      await fetchCart();
+    } catch (error) {
+      console.error("Failed to add to cart", error);
+    }
   };
 
-  const clearCart = () => {
-    setCart([]);
+  const removeFromCart = async (itemId) => {
+    try {
+      await cartApi.removeCartItem(itemId);
+      await fetchCart();
+    } catch (error) {
+      console.error("Failed to remove from cart", error);
+    }
+  };
+
+  const updateQuantity = async (itemId, quantity) => {
+    if (quantity <= 0) {
+      await removeFromCart(itemId);
+      return;
+    }
+    try {
+      await cartApi.updateCartItem(itemId, { quantity });
+      await fetchCart();
+    } catch (error) {
+      console.error("Failed to update quantity", error);
+    }
+  };
+
+  const clearCart = async () => {
+    try {
+      await cartApi.clearCart();
+      setCart([]);
+    } catch (error) {
+      console.error("Failed to clear cart", error);
+    }
   };
 
   const getCartCount = () => {
@@ -97,6 +104,7 @@ export const CartProvider = ({ children }) => {
     <CartContext.Provider
       value={{
         cart,
+        loading,
         addToCart,
         removeFromCart,
         updateQuantity,

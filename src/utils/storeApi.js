@@ -1,12 +1,12 @@
-import axios from "axios";
-import { STORE_BASE, API_BASE } from "../config/api.js";
+import apiClient from '../api/client';
+import { STORE_ENDPOINTS } from '../api/endpoints';
 
 /**
  * Fetch active categories for store (public)
  * GET /api/v1/store/categories
  */
 export async function getStoreCategories() {
-  const res = await axios.get(`${STORE_BASE}/categories`);
+  const res = await apiClient.get(STORE_ENDPOINTS.CATEGORIES);
   const data = res.data?.data ?? res.data;
   return Array.isArray(data) ? data : data?.categories ?? [];
 }
@@ -17,7 +17,7 @@ export async function getStoreCategories() {
  */
 export async function getStoreProducts(params = {}) {
   const { page = 1, limit = 50, ...rest } = params;
-  const res = await axios.get(`${STORE_BASE}/products`, {
+  const res = await apiClient.get(STORE_ENDPOINTS.PRODUCTS, {
     params: { page, limit, ...rest },
   });
   const payload = res.data?.data ?? res.data;
@@ -31,7 +31,7 @@ export async function getStoreProducts(params = {}) {
 export async function getStoreSubcategories(params = {}) {
   const { categorySlug, ...rest } = params;
   if (!categorySlug) return [];
-  const res = await axios.get(`${STORE_BASE}/subcategories`, {
+  const res = await apiClient.get(STORE_ENDPOINTS.SUBCATEGORIES, {
     params: { categorySlug, ...rest },
   });
   const payload = res.data ?? {};
@@ -45,7 +45,7 @@ export async function getStoreSubcategories(params = {}) {
  */
 export async function getStoreProductById(id) {
   if (!id) return null;
-  const res = await axios.get(`${STORE_BASE}/products/${id}`);
+  const res = await apiClient.get(`${STORE_ENDPOINTS.PRODUCTS}/${id}`);
   return res.data?.data ?? null;
 }
 
@@ -57,8 +57,8 @@ export async function getStoreProductBySlug(slug) {
   if (!slug) return null;
 
   try {
-    const res = await axios.get(
-      `${API_BASE}/v1/store/products/by-slug/${encodeURIComponent(slug)}`
+    const res = await apiClient.get(
+      `${STORE_ENDPOINTS.PRODUCT_BY_SLUG}/${encodeURIComponent(slug)}`
     );
     return res.data?.data ?? null;
   } catch {
@@ -66,8 +66,8 @@ export async function getStoreProductBySlug(slug) {
   }
 
   try {
-    const res = await axios.get(
-      `${API_BASE}/v1/store/products/slug/${encodeURIComponent(slug)}`
+    const res = await apiClient.get(
+      `${STORE_ENDPOINTS.PRODUCT_SLUG_DIRECT}/${encodeURIComponent(slug)}`
     );
     return res.data?.data ?? null;
   } catch {

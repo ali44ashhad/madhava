@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Package, Tag, TrendingUp, Sparkles } from 'lucide-react';
+import CircleLoader from "react-spinners/CircleLoader"
 
 const Cart = () => {
-  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, getCartTotal, clearCart, loading } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -24,13 +25,21 @@ const Cart = () => {
   }, 0);
 
   const handleBuyNow = () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    // if (!isAuthenticated) {
+    //   navigate('/login');
+    //   return;
+    // }
     if (cart.length === 0) return;
     navigate('/checkout');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center pt-24">
+        <CircleLoader color="#88013c" size={60} />
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
@@ -42,8 +51,8 @@ const Cart = () => {
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-3">Your cart is empty</h2>
             <p className="text-gray-600 mb-8 text-lg">Start adding products to see them here!</p>
-            <Link 
-              to="/products" 
+            <Link
+              to="/products"
               className="inline-flex items-center gap-2 bg-gradient-to-r from-[#88013C] to-[#a0014a] text-white px-10 py-4 rounded-xl font-bold hover:shadow-2xl hover:scale-105 transition-all"
             >
               <Sparkles size={20} />
@@ -60,14 +69,14 @@ const Cart = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <Link 
-            to="/products" 
+          <Link
+            to="/products"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-[#88013C] mb-4 font-medium transition-colors"
           >
             <ArrowLeft size={20} />
             <span>Continue Shopping</span>
           </Link>
-          
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
@@ -75,7 +84,7 @@ const Cart = () => {
                 {cart.length} {cart.length === 1 ? 'item' : 'items'} in your cart
               </p>
             </div>
-            
+
             {totalSavings > 0 && (
               <div className="bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-3 rounded-xl shadow-lg">
                 <div className="flex items-center gap-2">
@@ -103,14 +112,14 @@ const Cart = () => {
               const discountPercent = itemMrp > itemPrice ? Math.round(((itemMrp - itemPrice) / itemMrp) * 100) : 0;
 
               return (
-                <div 
-                  key={key} 
+                <div
+                  key={key}
                   className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 md:p-6 hover:shadow-md transition-all relative group"
                 >
                   <div className="flex gap-4 md:gap-6">
                     {/* Image */}
-                    <Link 
-                      to={`/product/${key}`} 
+                    <Link
+                      to={`/product/${key}`}
                       className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform"
                     >
                       <img
@@ -124,13 +133,13 @@ const Cart = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1 pr-2">
-                          <Link 
-                            to={`/product/${key}`} 
+                          <Link
+                            to={`/product/${key}`}
                             className="text-base sm:text-lg font-bold text-gray-900 hover:text-[#88013C] block line-clamp-2 mb-1"
                           >
                             {item.name}
                           </Link>
-                          
+
                           {item.category && (
                             <p className="text-xs text-gray-500 mb-2">
                               {item.category} {item.subcategory && `• ${item.subcategory}`}
@@ -147,7 +156,7 @@ const Cart = () => {
                           <Trash2 size={20} />
                         </button>
                       </div>
-                      
+
                       {/* Price Info */}
                       <div className="mb-4">
                         <div className="flex items-baseline gap-2 mb-1">
@@ -251,7 +260,7 @@ const Cart = () => {
                 <div className="flex justify-between text-gray-600">
                   <span>GST (18%)</span>
                   <span className="font-semibold text-gray-900">
-                    ₹{tax.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    ₹{tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
 
@@ -275,7 +284,7 @@ const Cart = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-bold text-gray-900">Grand Total</span>
                   <span className="text-2xl font-bold text-[#88013C]">
-                    ₹{grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    ₹{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
@@ -287,11 +296,7 @@ const Cart = () => {
                 Proceed to Checkout
               </button>
 
-              {!isAuthenticated && (
-                <p className="text-xs text-center text-gray-500 mt-3">
-                  You'll be redirected to login
-                </p>
-              )}
+
             </div>
           </div>
         </div>
