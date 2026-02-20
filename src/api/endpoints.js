@@ -17,6 +17,7 @@ export const AUTH_ENDPOINTS = {
     VERIFY_OTP: '/api/v1/auth/login/verify-otp',
 
     GET_ME: '/api/v1/auth/me',
+    REFRESH: '/api/v1/auth/refresh',
 };
 
 
