@@ -296,7 +296,33 @@ const Checkout = () => {
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">{item.name}</h3>
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        {item.name || item.title || 'Product Name Not Available'}
+                      </h3>
+
+                      <div className="flex flex-wrap gap-2 mb-2 mt-1">
+                        {(item.sku?.size || item.size) && (
+                          <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                            Size: <span className="font-semibold text-gray-800">{item.sku?.size || item.size}</span>
+                          </span>
+                        )}
+                        {(item.sku?.color || item.color) && (
+                          <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                            Color: <span className="font-semibold text-gray-800">{item.sku?.color || item.color}</span>
+                          </span>
+                        )}
+                        {(item.sku?.material || item.material) && (
+                          <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                            Material: <span className="font-semibold text-gray-800">{item.sku?.material || item.material}</span>
+                          </span>
+                        )}
+                        {(item.sku?.weight || item.weight) && (
+                          <span className="text-xs bg-gray-50 text-gray-600 px-2 py-1 rounded-md border border-gray-200">
+                            Weight: <span className="font-semibold text-gray-800">{item.sku?.weight || item.weight}</span>
+                          </span>
+                        )}
+                      </div>
+
                       <p className="text-sm text-gray-500 mb-2">
                         Quantity: {item.quantity} × ₹{item.price.toLocaleString()}
                       </p>

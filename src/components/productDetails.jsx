@@ -5,6 +5,7 @@ import CircleLoader from "react-spinners/CircleLoader"
 import { getStoreProductById, getStoreProductBySlug } from "../utils/storeApi";
 import { useCart } from "../context/CartContext";
 import Products from "./Products";
+import toast from 'react-hot-toast';
 
 const ProductDetails = () => {
   const params = useParams();
@@ -17,7 +18,6 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [showToast, setShowToast] = useState(false);
 
   const isUuid = useMemo(() => {
     if (!idOrSlug) return false;
@@ -99,8 +99,7 @@ const ProductDetails = () => {
     addToCart(cartItem);
 
     // Show success toast
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    toast.success("Added to cart successfully!");
   };
 
   const handleBuyNow = () => {
@@ -162,16 +161,6 @@ const ProductDetails = () => {
     <>
 
       <div className="pt-30 w-full px-4 sm:px-6 lg:px-10 pb-12">
-        {/* Toast Notification */}
-        {showToast && (
-          <div className="fixed top-20 right-4 z-50 bg-gradient-to-r from-green-600 to-green-500 text-white px-6 py-3 rounded-lg shadow-xl flex items-center gap-3 animate-slide-in">
-            <div className="w-6 h-6 bg-white rounded-full flex items-center justify-center">
-              <Check className="w-4 h-4 text-green-600" />
-            </div>
-            <span className="font-semibold">Added to cart successfully!</span>
-          </div>
-        )}
-
         {/* Back + Breadcrumb */}
         <div className="mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-500">
           <button

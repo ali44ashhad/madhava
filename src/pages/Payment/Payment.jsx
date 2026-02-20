@@ -6,10 +6,11 @@ import { ArrowLeft, CreditCard, Smartphone, Building2, Wallet, Check } from 'luc
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { createOrder } from '../../api/orderApi';
+import toast from 'react-hot-toast';
 
 const Payment = () => {
   const { cart, getCartTotal, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { customer, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,6 +29,7 @@ const Payment = () => {
 
   const address = location.state?.address;
   const orderSummary = location.state?.orderSummary;
+  const isBuyNow = location.state?.isBuyNow;
 
   const subtotal = orderSummary?.subtotal || getCartTotal();
   const tax = 0; // Inclusive in price
@@ -73,24 +75,24 @@ const Payment = () => {
 
   const handlePayment = async () => {
     if (!address) {
-      alert('Please select an address');
+      toast.error('Please select an address');
       navigate('/checkout');
       return;
     }
 
     // Validate payment method specific fields
     if (selectedMethod === 'upi' && !paymentData.upi) {
-      alert('Please enter UPI ID');
+      toast.error('Please enter UPI ID');
       return;
     }
     if (selectedMethod === 'card') {
       if (!paymentData.cardNumber || !paymentData.cardName || !paymentData.cardExpiry || !paymentData.cardCVV) {
-        alert('Please fill all card details');
+        toast.error('Please fill all card details');
         return;
       }
     }
     if (selectedMethod === 'netbanking' && !paymentData.bank) {
-      alert('Please select a bank');
+      toast.error('Please select a bank');
       return;
     }
 
@@ -105,7 +107,7 @@ const Payment = () => {
       }));
 
       const orderPayload = {
-        customerId: user.id,
+        customerId: customer.id,
         addressId: address.id,
         paymentMethod,
         paymentReference: null, // Will be updated for Razorpay later if needed, but backend takes it null initially
@@ -114,19 +116,23 @@ const Payment = () => {
 
       // 2. Create Order
       const response = await createOrder(orderPayload);
-      const { orderId, orderNumber, totalAmount, razorpayOrderId } = response; // Assuming backend returns this
+      console.log("Order created successfully", response);
+
+      const { orderId, orderNumber, totalAmount, razorpayOrderId } = response.data; // Assuming backend returns this
 
       // 3. Handle Payment Flow
       if (paymentMethod === 'COD') {
         // Success for COD
-        // clearCart(); // If we want to clear cart on success
+        if (!isBuyNow) {
+          clearCart();
+        }
         navigate('/orders', { replace: true });
-        alert(`Order Placed Successfully! Order # ${orderNumber}`);
+        toast.success(`Order Placed Successfully! Order # ${orderNumber}`);
       } else {
         // Handle Razorpay
         const res = await loadRazorpay();
         if (!res) {
-          alert('Razorpay SDK failed to load. Are you online?');
+          toast.error('Razorpay SDK failed to load. Are you online?');
           setIsProcessing(false);
           return;
         }
@@ -143,13 +149,15 @@ const Payment = () => {
             // Success handler
             // Verify payment on backend if endpoint exists, otherwise trust webhook
             // For now, just navigate to success
-            alert(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
-            // clearCart()
+            toast.success(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
+            if (!isBuyNow) {
+              clearCart();
+            }
             navigate('/orders', { replace: true });
           },
           prefill: {
             name: address.name,
-            email: user.email,
+            email: customer.email,
             contact: address.phone,
           },
           notes: {
@@ -164,14 +172,14 @@ const Payment = () => {
         paymentObject.open();
 
         paymentObject.on('payment.failed', function (response) {
-          alert(`Payment Failed: ${response.error.description}`);
+          toast.error(`Payment Failed: ${response.error.description}`);
           setIsProcessing(false);
         });
       }
 
     } catch (error) {
       console.error('Payment failed:', error);
-      alert(error.response?.data?.message || 'Failed to place order. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to place order. Please try again.');
       setIsProcessing(false);
     }
   };
