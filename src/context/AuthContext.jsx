@@ -22,13 +22,18 @@ export const AuthProvider = ({ children }) => {
       try {
         // Attempt to get a new access token using the HttpOnly refresh token cookie
         const response = await authApi.refresh();
-        window.__ACCESS_TOKEN__ = response.accessToken;
 
-        // If successful, fetch the customer profile
-        const customerProfile = await authApi.getMe();
+        if (response && response.accessToken) {
+          window.__ACCESS_TOKEN__ = response.accessToken;
 
-        setCustomer(customerProfile);
-        setIsAuthenticated(true);
+          // If successful, fetch the customer profile
+          const customerProfile = await authApi.getMe();
+
+          setCustomer(customerProfile);
+          setIsAuthenticated(true);
+        } else {
+          clearSession();
+        }
       } catch (error) {
         // If refresh fails (e.g., token expired or missing), keep them logged out
         clearSession();
