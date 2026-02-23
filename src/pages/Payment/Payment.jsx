@@ -14,7 +14,7 @@ const Payment = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [selectedMethod, setSelectedMethod] = useState('googlepay');
+  const [selectedMethod, setSelectedMethod] = useState('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Payment form data
@@ -65,8 +65,13 @@ const Payment = () => {
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
       script.onload = () => resolve(true);
       script.onerror = () => resolve(false);
       document.body.appendChild(script);
@@ -77,22 +82,6 @@ const Payment = () => {
     if (!address) {
       toast.error('Please select an address');
       navigate('/checkout');
-      return;
-    }
-
-    // Validate payment method specific fields
-    if (selectedMethod === 'upi' && !paymentData.upi) {
-      toast.error('Please enter UPI ID');
-      return;
-    }
-    if (selectedMethod === 'card') {
-      if (!paymentData.cardNumber || !paymentData.cardName || !paymentData.cardExpiry || !paymentData.cardCVV) {
-        toast.error('Please fill all card details');
-        return;
-      }
-    }
-    if (selectedMethod === 'netbanking' && !paymentData.bank) {
-      toast.error('Please select a bank');
       return;
     }
 
@@ -132,49 +121,58 @@ const Payment = () => {
         // Handle Razorpay
         const res = await loadRazorpay();
         if (!res) {
-          toast.error('Razorpay SDK failed to load. Are you online?');
+          toast.error('Razorpay process failed to load. Are you online?');
+          setIsProcessing(false);
+          return;
+        }
+
+        const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SCpSDW8dAGzOEK';
+
+        if (!rzpKey || !rzpKey.startsWith('rzp_test_')) {
+          toast.error("Invalid Razorpay Test Key");
           setIsProcessing(false);
           return;
         }
 
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Ensure this env var is set
-          amount: Math.round(grandTotal * 100), // Amount in paise
-          currency: 'INR',
+          key: rzpKey,
+          amount: Math.round(grandTotal * 100), // Mandatory
+          currency: 'INR', // Mandatory
           name: 'Nesta Toys',
           description: `Order #${orderNumber}`,
-          image: '/logo.png', // Add logo if available
-          order_id: razorpayOrderId, // If backend creates Razorpay order
+          order_id: razorpayOrderId, // Mandatory
+          prefill: {
+            name: address?.name || customer?.name || "Customer",
+            email: customer?.email || "customer@example.com",
+            contact: address?.phone || customer?.phone || "9999999999",
+          },
+          theme: {
+            color: '#88013C',
+          },
           handler: async function (response) {
-            // Success handler
-            // Verify payment on backend if endpoint exists, otherwise trust webhook
-            // For now, just navigate to success
+            alert(JSON.stringify(response));
             toast.success(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
             if (!isBuyNow) {
               clearCart();
             }
             navigate('/orders', { replace: true });
           },
-          prefill: {
-            name: address.name,
-            email: customer.email,
-            contact: address.phone,
-          },
-          notes: {
-            address: `${address.city}, ${address.state}`,
-          },
-          theme: {
-            color: '#88013C',
-          },
+          modal: {
+            ondismiss: function () {
+              setIsProcessing(false);
+            }
+          }
         };
 
-        const paymentObject = new window.Razorpay(options);
-        paymentObject.open();
+        const razorpayInstance = new window.Razorpay(options);
 
-        paymentObject.on('payment.failed', function (response) {
-          toast.error(`Payment Failed: ${response.error.description}`);
+        razorpayInstance.on('payment.failed', function (response) {
+          console.error('Razorpay payment failed', response.error);
+          toast.error(`Payment Failed: ${response.error.description || 'Unknown error'}`);
           setIsProcessing(false);
         });
+
+        razorpayInstance.open();
       }
 
     } catch (error) {
@@ -190,34 +188,10 @@ const Payment = () => {
 
   const paymentMethods = [
     {
-      id: 'googlepay',
-      name: 'Google Pay',
-      icon: Smartphone,
-      description: 'Pay with Google Pay',
-    },
-    {
-      id: 'upi',
-      name: 'UPI',
-      icon: Smartphone,
-      description: 'Pay with any UPI app',
-    },
-    {
-      id: 'card',
-      name: 'Credit/Debit Card',
+      id: 'razorpay',
+      name: 'Razorpay',
       icon: CreditCard,
-      description: 'Visa, Mastercard, RuPay',
-    },
-    {
-      id: 'netbanking',
-      name: 'Net Banking',
-      icon: Building2,
-      description: 'All major banks',
-    },
-    {
-      id: 'wallets',
-      name: 'Wallets',
-      icon: Wallet,
-      description: 'Paytm, PhonePe, Amazon Pay',
+      description: 'Cards, UPI, Netbanking, Wallets',
     },
     {
       id: 'cod',
@@ -225,17 +199,6 @@ const Payment = () => {
       icon: Wallet,
       description: 'Pay when you receive',
     },
-  ];
-
-  const banks = [
-    'State Bank of India',
-    'HDFC Bank',
-    'ICICI Bank',
-    'Axis Bank',
-    'Kotak Mahindra Bank',
-    'Punjab National Bank',
-    'Bank of Baroda',
-    'IndusInd Bank',
   ];
 
   return (
@@ -292,108 +255,7 @@ const Payment = () => {
                           animate={{ opacity: 1, height: 'auto' }}
                           className="mt-4 pt-4 border-t border-gray-200"
                         >
-                          {method.id === 'upi' && (
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                UPI ID
-                              </label>
-                              <input
-                                type="text"
-                                name="upi"
-                                value={paymentData.upi}
-                                onChange={handleInputChange}
-                                placeholder="yourname@upi"
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent"
-                              />
-                            </div>
-                          )}
 
-                          {method.id === 'card' && (
-                            <div className="space-y-4">
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Card Number
-                                </label>
-                                <input
-                                  type="text"
-                                  name="cardNumber"
-                                  value={paymentData.cardNumber}
-                                  onChange={handleInputChange}
-                                  placeholder="1234 5678 9012 3456"
-                                  maxLength="19"
-                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                  Cardholder Name
-                                </label>
-                                <input
-                                  type="text"
-                                  name="cardName"
-                                  value={paymentData.cardName}
-                                  onChange={handleInputChange}
-                                  placeholder="John Doe"
-                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent"
-                                />
-                              </div>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Expiry (MM/YY)
-                                  </label>
-                                  <input
-                                    type="text"
-                                    name="cardExpiry"
-                                    value={paymentData.cardExpiry}
-                                    onChange={handleInputChange}
-                                    placeholder="12/25"
-                                    maxLength="5"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-semibold text-gray-700 mb-2">CVV</label>
-                                  <input
-                                    type="text"
-                                    name="cardCVV"
-                                    value={paymentData.cardCVV}
-                                    onChange={handleInputChange}
-                                    placeholder="123"
-                                    maxLength="3"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {method.id === 'netbanking' && (
-                            <div>
-                              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Select Bank
-                              </label>
-                              <select
-                                name="bank"
-                                value={paymentData.bank}
-                                onChange={handleInputChange}
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#88013C] focus:border-transparent"
-                              >
-                                <option value="">Select a bank</option>
-                                {banks.map((bank) => (
-                                  <option key={bank} value={bank}>
-                                    {bank}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
-                          {(method.id === 'wallets' || method.id === 'googlepay') && (
-                            <div className="text-center py-4">
-                              <p className="text-gray-600">You will be redirected to complete the payment</p>
-                            </div>
-                          )}
                         </motion.div>
                       )}
                     </div>
