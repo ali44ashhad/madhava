@@ -21,17 +21,19 @@ export const createAddress = async (addressData) => {
     }
 };
 
-// Note: deleteAddress might not be fully supported by backend yet based on routes check, 
-// but implementing it for frontend consistency.
+export const updateAddress = async (addressId, addressData) => {
+    try {
+        const response = await apiClient.put(`${STORE_ENDPOINTS.ADDRESSES}/${addressId}`, addressData);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
 export const deleteAddress = async (addressId) => {
     try {
-        // Assuming DELETE endpoint structure if it existed, or it might be missing.
-        // Based on routes file, there is no DELETE address route.
-        // I will comment this out or handle it gracefully if the user tries to delete.
-        // For now, I'll log a warning that it's not implemented on backend.
-        console.warn('Delete address not implemented in backend yet');
-        // const response = await apiClient.delete(`${STORE_ENDPOINTS.ADDRESSES}/${addressId}`);
-        // return response.data;
+        const response = await apiClient.delete(`${STORE_ENDPOINTS.ADDRESSES}/${addressId}`);
+        return response.data;
     } catch (error) {
         throw error;
     }

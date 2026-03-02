@@ -42,3 +42,21 @@ export const getOrderById = async (orderId) => {
         throw error;
     }
 };
+
+export const requestReturn = async (orderItemId, payload) => {
+    try {
+        const response = await apiClient.post(`${STORE_ENDPOINTS.ORDERS}/${orderItemId}/return`, payload);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const cancelOrder = async (orderId, reason) => {
+    try {
+        const response = await apiClient.post(`${STORE_ENDPOINTS.ORDERS}/${orderId}/cancel`, { reason });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

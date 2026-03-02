@@ -15,11 +15,12 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   const [selectedAddressLabel, setSelectedAddressLabel] = useState('Select Address');
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, customer, logout } = useAuth();
   const navigate = useNavigate();
 
   // Mobile States
@@ -362,14 +363,61 @@ const Navbar = () => {
                   </Link>
                 </div>
               ) : (
-                <Link to="/profile" className="relative group">
-                  <User className="cursor-pointer" />
-                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                      {user?.name || 'Profile'}
+                <div
+                  className="relative group flex items-center"
+                  onMouseEnter={() => setIsProfileDropdownOpen(true)}
+                  onMouseLeave={() => setIsProfileDropdownOpen(false)}
+                >
+                  <Link to="/profile" className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-[#88013C] text-white rounded-full flex items-center justify-center text-sm font-bold cursor-pointer">
+                      {customer?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+
+                  <AnimatePresence>
+                    {isProfileDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden"
+                      >
+                        <ul className="py-2 text-sm text-gray-700">
+                          <li>
+                            <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100 transition">
+                              My Profile
+                            </Link>
+                          </li>
+                          <li className="border-t border-gray-100 my-1"></li>
+                          <li>
+                            <button
+                              onClick={() => {
+                                logout();
+                                navigate('/');
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition"
+                            >
+                              Logout
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              onClick={() => {
+                                if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                                  alert("Delete account functionality will be integrated soon.");
+                                }
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 transition"
+                            >
+                              Delete Account
+                            </button>
+                          </li>
+                        </ul>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               )}
 
               {/* Cart */}
@@ -539,8 +587,10 @@ const Navbar = () => {
                     className="flex items-center justify-between border p-3 rounded-lg mb-4 hover:bg-gray-50 transition"
                   >
                     <div className="flex items-center gap-3">
-                      <User />
-                      <span className="font-bold">{user?.name || 'My Account'}</span>
+                      <div className="w-8 h-8 bg-[#88013C] text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        {customer?.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                      <span className="font-bold">{customer?.name || 'My Account'}</span>
                     </div>
                     <button
                       onClick={(e) => {

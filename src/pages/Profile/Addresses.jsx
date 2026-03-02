@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronUp, Edit2, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { STORE_ENDPOINTS } from '../../api/endpoints';
 import toast from 'react-hot-toast';
 import apiClient from '../../api/client';
+import { updateAddress, deleteAddress } from '../../api/addressApi';
 
 const SELECTED_ADDRESS_STORAGE_KEY = 'selectedAddress';
 
@@ -24,6 +25,8 @@ const Addresses = () => {
     state: '',
     pincode: '',
   });
+
+  const [editingAddressId, setEditingAddressId] = useState(null);
 
   useEffect(() => {
     if (customer?.id) {
@@ -86,14 +89,22 @@ const Addresses = () => {
         return;
       }
 
-      await apiClient.post(STORE_ENDPOINTS.ADDRESSES, {
-        customerId: customer.id,
-        ...form,
-        phone: cleanPhone,
-        line2: form.line2 || null,
-      });
-
-      toast.success('Address added successfully');
+      if (editingAddressId) {
+        await updateAddress(editingAddressId, {
+          ...form,
+          phone: cleanPhone,
+          line2: form.line2 || null,
+        });
+        toast.success('Address updated successfully');
+      } else {
+        await apiClient.post(STORE_ENDPOINTS.ADDRESSES, {
+          customerId: customer.id,
+          ...form,
+          phone: cleanPhone,
+          line2: form.line2 || null,
+        });
+        toast.success('Address added successfully');
+      }
 
       setForm({
         name: '',
@@ -106,10 +117,45 @@ const Addresses = () => {
       });
 
       setShowForm(false);
+      setEditingAddressId(null);
       fetchAddresses();
     } catch (error) {
-      console.error("Address add failed", error);
-      const msg = error.response?.data?.message || 'Failed to add address';
+      console.error("Address save failed", error);
+      const msg = error.response?.data?.message || 'Failed to save address';
+      toast.error(msg);
+    }
+  };
+
+  const handleEditClick = (addr) => {
+    setForm({
+      name: addr.name || '',
+      phone: addr.phone || '',
+      line1: addr.line1 || '',
+      line2: addr.line2 || '',
+      city: addr.city || '',
+      state: addr.state || '',
+      pincode: addr.pincode || '',
+    });
+    setEditingAddressId(addr.id);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteClick = async (addressId) => {
+    if (!window.confirm("Are you sure you want to delete this address?")) return;
+
+    try {
+      await deleteAddress(addressId);
+      toast.success("Address deleted");
+
+      if (selectedAddress?.id === addressId) {
+        setSelectedAddress(null);
+        localStorage.removeItem(SELECTED_ADDRESS_STORAGE_KEY);
+      }
+      fetchAddresses();
+    } catch (error) {
+      console.error("Address delete failed", error);
+      const msg = error.response?.data?.message || 'Failed to delete address';
       toast.error(msg);
     }
   };
@@ -187,13 +233,17 @@ const Addresses = () => {
         )}
       </AnimatePresence>
 
-      {/* ================= ADD ADDRESS BUTTON ================= */}
-      <div className="flex justify-between mt-8 mb-6">
-        <h2 className="text-2xl font-bold">Saved Addresses</h2>
+      <div className="flex items-center justify-between mt-8 mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Saved Addresses</h2>
         <button
-          onClick={() => setShowForm(true)}
-          className="bg-[#88013C] text-white px-4 py-2 rounded"
+          onClick={() => {
+            setForm({ name: '', phone: '', line1: '', line2: '', city: '', state: '', pincode: '' });
+            setEditingAddressId(null);
+            setShowForm(true);
+          }}
+          className="flex items-center gap-2 bg-[#88013C] text-white px-5 py-2.5 rounded-full font-bold shadow-md hover:bg-[#6a0129] hover:shadow-lg transition-all text-sm"
         >
+          <Plus size={18} />
           Add Address
         </button>
       </div>
@@ -227,7 +277,10 @@ const Addresses = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingAddressId(null);
+                }}
                 className="border px-6 py-2 rounded"
               >
                 Cancel
@@ -245,18 +298,36 @@ const Addresses = () => {
           {addresses.map((addr) => (
             <div
               key={addr.id}
-              className={`border p-4 rounded-lg ${selectedAddress?.id === addr.id
+              className={`border p-4 rounded-lg flex flex-col justify-between ${selectedAddress?.id === addr.id
                 ? 'border-[#88013C]'
                 : ''
                 }`}
             >
-              <h4 className="font-bold">{addr.name}</h4>
-              <p className="text-sm">{addr.phone}</p>
-              <p className="text-sm mt-2">
-                {addr.line1}
-                {addr.line2 && `, ${addr.line2}`},{' '}
-                {addr.city}, {addr.state} - {addr.pincode}
-              </p>
+              <div>
+                <h4 className="font-bold">{addr.name}</h4>
+                <p className="text-sm">{addr.phone}</p>
+                <p className="text-sm mt-2">
+                  {addr.line1}
+                  {addr.line2 && `, ${addr.line2}`},{' '}
+                  {addr.city}, {addr.state} - {addr.pincode}
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-100">
+                <button
+                  onClick={() => handleEditClick(addr)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-white hover:text-[#88013C] hover:border-[#88013C] transition-colors shadow-sm"
+                >
+                  <Edit2 size={14} />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(addr.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-600 hover:text-white transition-colors shadow-sm"
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>

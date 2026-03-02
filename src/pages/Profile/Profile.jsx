@@ -20,26 +20,23 @@ import Addresses from './Addresses';
 import SettingsSection from './Settings';
 
 const Profile = () => {
-  const { user, logout, deleteAccount, isAuthenticated } = useAuth();
+  const { customer, logout, deleteAccount, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [activeSection, setActiveSection] = useState('overview');
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
 
 
   const menuItems = [
     { id: 'overview', label: 'Profile Overview', icon: User },
     { id: 'orders', label: 'My Orders', icon: Package },
-    { id: 'wishlist', label: 'Wishlist', icon: Heart },
     { id: 'addresses', label: 'Addresses', icon: MapPin },
-    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const renderSection = () => {
     switch (activeSection) {
       case 'overview':
-        return <ProfileOverview user={user} />;
+        return <ProfileOverview user={customer} />;
       case 'orders':
         return <MyOrders />;
       case 'wishlist':
@@ -59,65 +56,29 @@ const Profile = () => {
 
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6 relative">
-          <h1 className="text-3xl font-bold">My Profile</h1>
-
-          <button
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-            className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow"
-          >
-            <div className="w-10 h-10 bg-[#88013C] text-white rounded-full flex items-center justify-center">
-              {user?.name?.charAt(0)}
-            </div>
-            <ChevronDown />
-          </button>
-
-          <AnimatePresence>
-            {showProfileDropdown && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="absolute right-0 top-14 bg-white rounded-lg shadow-lg w-48 z-50"
-              >
-                <button
-                  onClick={() => {
-                    logout();
-                    navigate('/');
-                  }}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-100 flex gap-2 text-red-600"
-                >
-                  <LogOut size={16} /> Logout
-                </button>
-
-                <button
-                  onClick={deleteAccount}
-                  className="w-full px-4 py-3 text-left hover:bg-gray-100 flex gap-2 text-red-600"
-                >
-                  <Trash2 size={16} /> Delete Account
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-          {/* SIDEBAR */}
-          <div className="bg-white p-4 rounded-xl shadow">
+          {/* NAVIGATION TABS */}
+          <div className="bg-white p-3 lg:p-4 rounded-xl shadow grid grid-cols-3 gap-2 mb-4 lg:flex lg:flex-col lg:gap-0 lg:mb-0">
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 ${
+                  className={`w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1.5 lg:gap-3 px-2 py-3 lg:px-4 lg:py-3 rounded-lg lg:mb-2 border lg:border-none transition-all duration-200 ${
                     activeSection === item.id
-                      ? 'bg-[#88013C] text-white'
-                      : 'hover:bg-gray-100'
+                      ? 'bg-[#88013C] text-white border-[#88013C] shadow-sm lg:shadow-none'
+                      : 'bg-white lg:bg-transparent border-gray-200 text-gray-700 lg:text-inherit hover:bg-gray-50 lg:hover:bg-gray-100'
                   }`}
                 >
-                  <Icon size={18} />
-                  {item.label}
+                  <Icon className={`w-5 h-5 lg:w-[18px] lg:h-[18px] flex-shrink-0 ${activeSection !== item.id ? 'text-gray-500 lg:text-inherit' : ''}`} />
+                  <span className={`text-xs lg:text-base text-center lg:text-left leading-tight ${activeSection === item.id ? 'font-semibold lg:font-normal' : 'font-medium lg:font-normal'}`}>
+                    {item.label}
+                  </span>
                 </button>
               );
             })}

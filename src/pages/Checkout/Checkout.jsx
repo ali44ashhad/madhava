@@ -17,6 +17,7 @@ import {
 import {
   getAddresses,
   createAddress,
+  updateAddress,
   deleteAddress
 } from '../../api/addressApi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -120,8 +121,11 @@ const Checkout = () => {
         isDefault: formData.isDefault
       };
 
-      // Note: Edit is treated as create new for now as backend update is not available
-      await createAddress(addressData);
+      if (isEditing && editingAddress) {
+        await updateAddress(editingAddress.id, addressData);
+      } else {
+        await createAddress(addressData);
+      }
 
       await loadAddresses();
       resetForm();
