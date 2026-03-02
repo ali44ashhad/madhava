@@ -100,7 +100,7 @@ const Orders = () => {
                         <h3 className="text-lg font-bold text-gray-900">Order #{order.orderNumber}</h3>
                         <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
                           <Calendar className="w-4 h-4" />
-                          {new Date(order.placedAt).toLocaleDateString('en-US', {
+                          {new Date(order.placedAt || order.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',

@@ -182,7 +182,7 @@ const MyOrders = () => {
                 <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Order Number</p>
                 <p className="text-lg font-bold text-gray-800">#{order.orderNumber}</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Placed on {formatDate(order.createdAt)}
+                  Placed on {formatDate(order.placedAt || order.createdAt)}
                 </p>
               </div>
               <div className="flex flex-col sm:items-end gap-3 sm:gap-2">
