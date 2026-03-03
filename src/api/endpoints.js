@@ -7,6 +7,7 @@ export const STORE_ENDPOINTS = {
     CART: '/api/v1/store/cart',
     ADDRESSES: '/api/v1/store/addresses',
     ORDERS: '/api/v1/store/orders',
+    COUPONS: '/api/v1/store/coupons',
 };
 
 export const AUTH_ENDPOINTS = {

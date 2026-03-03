@@ -60,3 +60,12 @@ export const cancelOrder = async (orderId, reason) => {
         throw error;
     }
 };
+
+export const validateCoupon = async (payload) => {
+    try {
+        const response = await apiClient.post(`${STORE_ENDPOINTS.COUPONS}/validate`, payload);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

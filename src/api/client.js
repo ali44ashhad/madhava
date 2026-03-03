@@ -58,7 +58,12 @@ apiClient.interceptors.response.use(
             }
         }
 
-        const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Something went wrong';
+        let message = error.response?.data?.message || error.response?.data?.error?.message || error.response?.data?.error || error.message || 'Something went wrong';
+
+        // Ensure message is a string before passing to react-hot-toast to prevent "Objects are not valid as a React child"
+        if (typeof message === 'object' && message !== null) {
+            message = message.message || JSON.stringify(message);
+        }
 
         // Don't show toast for the initial 401 error if we are attempting a retry
         if (error.response?.status !== 401 || originalRequest._retry === false) {

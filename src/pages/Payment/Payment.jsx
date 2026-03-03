@@ -30,13 +30,14 @@ const Payment = () => {
   const address = location.state?.address;
   const orderSummary = location.state?.orderSummary;
   const isBuyNow = location.state?.isBuyNow;
+  const couponInfo = location.state?.couponInfo; // { code, discountAmount, coupon }
 
   const subtotal = orderSummary?.subtotal || getCartTotal();
   const tax = 0; // Inclusive in price
   const shipping = 0; // Free shipping
-  const discount = 0; // Can be calculated based on coupons/promotions
+  const discount = orderSummary?.discount || (couponInfo ? couponInfo.discountAmount : 0);
   const codFee = selectedMethod === 'cod' ? 50 : 0;
-  const grandTotal = subtotal + shipping - discount + codFee;
+  const grandTotal = Math.max(0, subtotal + shipping - discount + codFee);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -100,7 +101,8 @@ const Payment = () => {
         addressId: address.id,
         paymentMethod,
         paymentReference: null, // Will be updated for Razorpay later if needed, but backend takes it null initially
-        items
+        items,
+        ...(couponInfo?.code && { couponCode: couponInfo.code })
       };
 
       // 2. Create Order
@@ -311,7 +313,7 @@ const Payment = () => {
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
+                    <span>Discount {couponInfo ? `(${couponInfo.code})` : ''}</span>
                     <span className="font-semibold">-₹{discount.toLocaleString()}</span>
                   </div>
                 )}
