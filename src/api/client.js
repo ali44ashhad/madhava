@@ -7,6 +7,35 @@ const apiClient = axios.create({
     timeout: 15000,
 });
 
+/**
+ * Shared refresh "lock" to prevent concurrent refresh calls.
+ * This matters because your backend rotates refresh tokens (revokes old one),
+ * so two refresh calls in parallel will cause one to fail and log the user out.
+ */
+let refreshPromise = null;
+
+export async function refreshAccessToken() {
+    if (refreshPromise) return refreshPromise;
+
+    refreshPromise = (async () => {
+        const refreshClient = axios.create({
+            baseURL: import.meta.env.VITE_API_BASE_URL,
+            withCredentials: true,
+            timeout: 15000,
+        });
+
+        const response = await refreshClient.post('/api/v1/auth/refresh');
+        const { accessToken } = response.data || {};
+
+        window.__ACCESS_TOKEN__ = accessToken || null;
+        return accessToken || null;
+    })().finally(() => {
+        refreshPromise = null;
+    });
+
+    return refreshPromise;
+}
+
 apiClient.interceptors.request.use(
     (config) => {
         const token = window.__ACCESS_TOKEN__ || localStorage.getItem('adminToken');
@@ -20,41 +49,60 @@ apiClient.interceptors.request.use(
     }
 );
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+
+    failedQueue = [];
+};
+
 apiClient.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        // If the error is 401 and we haven't already retried this request
         if (error.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((token) => {
+                        originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                        return apiClient(originalRequest);
+                    })
+                    .catch((err) => {
+                        return Promise.reject(err);
+                    });
+            }
+
             originalRequest._retry = true;
+            isRefreshing = true;
 
             try {
-                // Determine if this is a customer or admin request based on the URL or existing tokens
-                // For simplicity, we try the customer refresh endpoint first
-                // A dedicated axios instance is used to prevent interceptor infinite loops
-                const refreshClient = axios.create({
-                    baseURL: import.meta.env.VITE_API_BASE_URL,
-                    withCredentials: true,
-                });
-
-                const response = await refreshClient.post('/api/auth/refresh');
-                const { accessToken } = response.data;
+                const accessToken = await refreshAccessToken();
 
                 if (accessToken) {
-                    window.__ACCESS_TOKEN__ = accessToken;
-
-                    // Update Authorization header for the retried request
+                    processQueue(null, accessToken);
                     originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-
-                    // Retry the original request with the new token
                     return apiClient(originalRequest);
+                } else {
+                    processQueue(new Error('Refresh failed'), null);
+                    window.__ACCESS_TOKEN__ = null;
                 }
             } catch (refreshError) {
-                // If refresh fails, clear the memory token. 
-                // The user will need to log in again.
+                processQueue(refreshError, null);
                 window.__ACCESS_TOKEN__ = null;
                 console.error('Session expired, please log in again.');
+            } finally {
+                isRefreshing = false;
             }
         }
 
@@ -65,10 +113,16 @@ apiClient.interceptors.response.use(
             message = message.message || JSON.stringify(message);
         }
 
+        // Don't show toast if skipToast is true
+        if (error.config?.skipToast) {
+            return Promise.reject(error);
+        }
+
         // Don't show toast for the initial 401 error if we are attempting a retry
         if (error.response?.status !== 401 || originalRequest._retry === false) {
-            toast.error(message);
+            toast.error(message, { id: error.config?.toastId });
         }
+
 
         console.error('API ERROR:', error.response?.data || error.message);
         return Promise.reject(error);

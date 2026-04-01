@@ -35,7 +35,7 @@ const Cart = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center pt-24">
+      <div className="min-h-screen flex justify-center items-center">
         <CircleLoader color="#88013c" size={60} />
       </div>
     );
@@ -43,7 +43,7 @@ const Cart = () => {
 
   if (cart.length === 0) {
     return (
-      <div className="pt-24 md:pt-32 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
         <div className="max-w-2xl mx-auto px-4 py-16">
           <div className="text-center bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
             <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center">
@@ -65,7 +65,7 @@ const Cart = () => {
   }
 
   return (
-    <div className="pt-24 md:pt-32 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">

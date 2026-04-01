@@ -1,29 +1,60 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Instagram, Facebook, Youtube, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { getStoreCategories } from "../utils/storeApi";
 
 const Footer = () => {
-  const categoriesLinks = [
-    [
-      { name: "God Idols", path: "/god-statues" },
-      { name: "God Dresses", path: "/god-dresses" },
-      { name: "Pooja Accessories", path: "/pooja-thali" },
-      { name: "Brass Diyas", path: "/diya-lamps" },
-    ],
-    [
-      // { name: "Home Mandir", path: "/mandir" },
-      // { name: "Chowki & Sinhasan", path: "/mandir-chowki" },
-      // { name: "Temple Decor", path: "/home-decor" },
-      // { name: "Spiritual Gifts", path: "/category/spiritual-gifts" },
-    ],
-  ];
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await getStoreCategories();
+        if (!alive) return;
+        setCategories(Array.isArray(data) ? data : []);
+      } catch {
+        if (!alive) return;
+        setCategories([]);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const topCategories = useMemo(() => {
+    const list = Array.isArray(categories) ? categories : [];
+    const firstFive = list
+      .filter((c) => c && (c.slug || c.id) && c.name)
+      .slice(0, 5)
+      .map((c) => ({
+        key: c.id ?? c.slug ?? c.name,
+        name: c.name,
+        path: c.slug ? `/category/${c.slug}` : "/categories",
+      }));
+
+    if (firstFive.length > 0) return firstFive;
+
+    // Fallback if categories are unavailable
+    return [
+      { key: "categories", name: "Browse Categories", path: "/categories" },
+      { key: "products", name: "All Products", path: "/products" },
+      { key: "cart", name: "Cart", path: "/cart" },
+      { key: "orders", name: "My Orders", path: "/orders" },
+      { key: "categories", name: "All Categories", path: "/categories" },
+    ];
+  }, [categories]);
 
   const shopLinks = [
-   { name: "Home Mandir", path: "/mandir" },
-      { name: "Chowki & Sinhasan", path: "/mandir-chowki" },
-      { name: "Temple Decor", path: "/home-decor" },
-      { name: "Spiritual Gifts", path: "/category/spiritual-gifts" },
+    { name: "Categories", path: "/categories" },
+    { name: "All Products", path: "/products" },
+    { name: "Cart", path: "/cart" },
+    { name: "My Orders", path: "/orders" },
+    { name: "FAQ", path: "/faq" },
+    { name: "Contact Us", path: "/contact-us" }
   ];
 
   const policyLinks = [
@@ -73,7 +104,7 @@ const Footer = () => {
 
             <div className="relative max-w-sm">
               <input
-                type="email"  
+                type="email"
                 placeholder="Enter your email address"
                 className="w-full py-3 px-5 border-2 border-gray-400 rounded-xl outline-none shadow-sm text-gray-400"
               />
@@ -105,26 +136,22 @@ const Footer = () => {
             <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
               <h4 className="font-bold mb-5 text-lg text-yellow-300">Categories</h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {[categoriesLinks[0], categoriesLinks[1]].map((group, gi) => (
-                  <ul key={gi} className="space-y-3 text-sm font-medium">
-                    {group.map((item, i) => (
-                      <motion.li
-                        key={item.name}
-                        custom={i}
-                        variants={fadeUp}
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                      >
-                        <Link className="hover:text-yellow-300 transition" to={item.path}>
-                          {item.name}
-                        </Link>
-                      </motion.li>
-                    ))}
-                  </ul>
+              <ul className="space-y-3 text-sm font-medium">
+                {topCategories.map((item, i) => (
+                  <motion.li
+                    key={item.key ?? item.name}
+                    custom={i}
+                    variants={fadeUp}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                  >
+                    <Link className="hover:text-yellow-300 transition" to={item.path}>
+                      {item.name}
+                    </Link>
+                  </motion.li>
                 ))}
-              </div>
+              </ul>
             </motion.div>
 
             {/* SHOP */}

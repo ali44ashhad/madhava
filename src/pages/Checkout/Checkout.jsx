@@ -26,7 +26,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const Checkout = () => {
-  const { cart, getCartTotal } = useCart();
+  const { cart, getCartTotal, appliedCoupon, setAppliedCoupon } = useCart();
+
   const { customer, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,9 +56,9 @@ const Checkout = () => {
 
   // --- Coupon State ---
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountAmount, coupon }
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [couponError, setCouponError] = useState('');
+
 
   const subtotal = buyNowProduct
     ? buyNowProduct.price * buyNowProduct.quantity
@@ -68,6 +69,59 @@ const Checkout = () => {
   const shipping = 0; // No shipping fee
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const grandTotal = Math.max(0, subtotal - discount); // Accurate to backend
+
+  const roundToPaise = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+  const allocateDiscountToLines = (orderDiscount, lines) => {
+    const d = roundToPaise(orderDiscount);
+    if (!d || d <= 0) {
+      return lines.map((l) => ({
+        discountAmount: 0,
+        netLineTotal: roundToPaise(l.lineTotal),
+        netUnitPrice: roundToPaise(l.unitPrice),
+      }));
+    }
+    const orderSubtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
+    if (orderSubtotal <= 0) return lines.map((l) => ({ discountAmount: 0, netLineTotal: roundToPaise(l.lineTotal), netUnitPrice: roundToPaise(l.unitPrice) }));
+
+    const allocs = lines.map((l) => {
+      const raw = (d * l.lineTotal) / orderSubtotal;
+      const disc = roundToPaise(raw);
+      const clamped = Math.min(l.lineTotal, Math.max(0, disc));
+      const netLineTotal = roundToPaise(Math.max(0, l.lineTotal - clamped));
+      const netUnitPrice = l.quantity > 0 ? roundToPaise(netLineTotal / l.quantity) : roundToPaise(l.unitPrice);
+      return { discountAmount: clamped, netLineTotal, netUnitPrice };
+    });
+
+    const allocated = roundToPaise(allocs.reduce((s, a) => s + a.discountAmount, 0));
+    let remainder = roundToPaise(d - allocated);
+    if (remainder !== 0) {
+      let targetIdx = 0;
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].lineTotal > lines[targetIdx].lineTotal) targetIdx = i;
+      }
+      const lineTotal = lines[targetIdx].lineTotal;
+      const cur = allocs[targetIdx].discountAmount;
+      const next = roundToPaise(Math.min(lineTotal, Math.max(0, cur + remainder)));
+      const appliedDelta = roundToPaise(next - cur);
+      allocs[targetIdx].discountAmount = next;
+      allocs[targetIdx].netLineTotal = roundToPaise(Math.max(0, lineTotal - next));
+      allocs[targetIdx].netUnitPrice = lines[targetIdx].quantity > 0 ? roundToPaise(allocs[targetIdx].netLineTotal / lines[targetIdx].quantity) : roundToPaise(lines[targetIdx].unitPrice);
+      remainder = roundToPaise(remainder - appliedDelta);
+    }
+
+    return allocs;
+  };
+
+  const checkoutLines = products.map((item) => ({
+    id: item.id,
+    quantity: item.quantity,
+    unitPrice: Number(item.price || 0),
+    lineTotal: Number(item.price || 0) * Number(item.quantity || 0),
+  }));
+
+  const checkoutLineAllocations =
+    discount > 0 ? allocateDiscountToLines(discount, checkoutLines) : checkoutLines.map((l) => ({ discountAmount: 0, netLineTotal: l.lineTotal, netUnitPrice: l.unitPrice }));
 
   useEffect(() => {
     // if (!isAuthenticated) {
@@ -84,6 +138,35 @@ const Checkout = () => {
       loadAddresses();
     }
   }, [isAuthenticated, cart.length, customer]);
+  
+  // Re-validate coupon if subtotal changes
+  useEffect(() => {
+    const revalidate = async () => {
+      if (appliedCoupon && subtotal > 0) {
+        try {
+          const res = await validateCoupon({
+            code: appliedCoupon.code,
+            subtotal
+          }, { toastId: 'coupon-validation' });
+          // Update discount amount if it changed
+
+          if (res.data.discountAmount !== appliedCoupon.discountAmount) {
+            setAppliedCoupon({
+              code: res.data.couponCode,
+              discountAmount: res.data.discountAmount
+            });
+          }
+        } catch (err) {
+          // Coupon no longer valid for this subtotal
+          setAppliedCoupon(null);
+        }
+
+      }
+    };
+    
+    revalidate();
+  }, [subtotal, appliedCoupon?.code]);
+
 
   const loadAddresses = async () => {
     try {
@@ -113,7 +196,7 @@ const Checkout = () => {
   const handleSaveAddress = async () => {
     if (!formData.name || !formData.phone || !formData.line1 ||
       !formData.city || !formData.state || !formData.pincode) {
-      alert('Please fill all required fields');
+      toast.error('Please fill all required fields');
       return;
     }
 
@@ -141,7 +224,7 @@ const Checkout = () => {
       resetForm();
     } catch (error) {
       console.error('Failed to save address:', error);
-      alert('Failed to save address. Please try again.');
+      toast.error('Failed to save address. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -174,7 +257,7 @@ const Checkout = () => {
         }
       } catch (error) {
         console.error('Failed to delete address:', error);
-        alert('Failed to delete address.');
+        toast.error('Failed to delete address.');
       }
     }
   };
@@ -197,7 +280,7 @@ const Checkout = () => {
 
   const handleContinue = () => {
     if (!selectedAddress) {
-      alert('Please select a delivery address');
+      toast.error('Please select a delivery address');
       return;
     }
 
@@ -227,8 +310,9 @@ const Checkout = () => {
       const res = await validateCoupon({
         code: couponCode.trim(),
         subtotal
-      });
+      }, { toastId: 'coupon-validation' });
       setAppliedCoupon({
+
         code: res.data.couponCode,
         discountAmount: res.data.discountAmount
       });
@@ -252,7 +336,7 @@ const Checkout = () => {
 
 
   return (
-    <div className="pt-30 min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
 
         {/* HEADER */}
@@ -371,11 +455,27 @@ const Checkout = () => {
                       </div>
 
                       <p className="text-sm text-gray-500 mb-2">
-                        Quantity: {item.quantity} × ₹{item.price.toLocaleString()}
+                        Quantity: {item.quantity} × ₹{Number(item.price || 0).toLocaleString()}
                       </p>
-                      <p className="font-bold text-[#88013C] text-lg">
-                        ₹{(item.price * item.quantity).toLocaleString()}
-                      </p>
+                      {discount > 0 ? (
+                        <div className="space-y-1">
+                          <p className="text-sm text-gray-500">
+                            <span className="line-through">
+                              ₹{(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString()}
+                            </span>
+                          </p>
+                          <p className="font-bold text-[#88013C] text-lg">
+                            ₹{Number(checkoutLineAllocations[index]?.netLineTotal ?? (Number(item.price || 0) * Number(item.quantity || 0))).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-green-700 font-medium">
+                            You save ₹{Number(checkoutLineAllocations[index]?.discountAmount ?? 0).toLocaleString()}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="font-bold text-[#88013C] text-lg">
+                          ₹{(Number(item.price || 0) * Number(item.quantity || 0)).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 ))}

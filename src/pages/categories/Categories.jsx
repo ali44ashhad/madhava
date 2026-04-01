@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getStoreCategories } from '../../utils/storeApi';
 import CategoryCard from '../../components/CategoryCard';
 import CircleLoader from "react-spinners/CircleLoader";
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 const Categories = () => {
     const [categories, setCategories] = useState([]);
@@ -38,8 +40,19 @@ const Categories = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50 pt-32 pb-20">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 pb-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+                
+                {/* Back Button */}
+                <div className="mb-8">
+                    <Link 
+                        to="/" 
+                        className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#88013C] transition-colors group"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                        Back to Home
+                    </Link>
+                </div>
 
                 {/* Header Section */}
                 <div className="text-center mb-12 sm:mb-16">
