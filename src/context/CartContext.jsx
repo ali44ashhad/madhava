@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { cartApi } from '../api/cartApi';
 import { useAuth } from './AuthContext';
+import toast from 'react-hot-toast';
 
 const CartContext = createContext();
 
@@ -15,6 +16,8 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, discountAmount, coupon }
+
   const { isAuthenticated } = useAuth();
 
   const fetchCart = async () => {
@@ -49,7 +52,7 @@ export const CartProvider = ({ children }) => {
 
   const addToCart = async (item, quantity) => {
     if (!isAuthenticated) {
-      alert("Please login to use the cart.");
+      toast.error("Please login to use the cart.");
       return;
     }
     try {
@@ -88,7 +91,9 @@ export const CartProvider = ({ children }) => {
     try {
       await cartApi.clearCart();
       setCart([]);
+      setAppliedCoupon(null);
     } catch (error) {
+
       console.error("Failed to clear cart", error);
     }
   };
@@ -112,6 +117,8 @@ export const CartProvider = ({ children }) => {
         clearCart,
         getCartCount,
         getCartTotal,
+        appliedCoupon,
+        setAppliedCoupon,
       }}
     >
       {children}

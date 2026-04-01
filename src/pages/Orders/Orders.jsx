@@ -55,7 +55,7 @@ const Orders = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#eff4f7] to-white pt-32 pb-16 px-4 md:px-10">
+    <div className="min-h-screen bg-gradient-to-br from-[#eff4f7] to-white pb-16 px-4 md:px-10">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Orders</h1>
@@ -119,7 +119,7 @@ const Orders = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Items</p>
-                        <p className="font-semibold text-gray-900">{order.orderItems?.length || 0} item(s)</p>
+                        <p className="font-semibold text-gray-900">{order.orderItems?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0} item(s)</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Total Amount</p>
@@ -135,13 +135,25 @@ const Orders = () => {
                     )}
                   </div>
 
-                  <Link
-                    to={`/orders/${order.id}`} // Using ID for route, verify if route uses ID or orderNumber
-                    className="flex items-center justify-center gap-2 bg-[#88013C] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6a0129] transition whitespace-nowrap"
-                  >
-                    View Details
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+                  <div className="flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
+                    {order.shippingInfo?.trackingLink && order.status !== 'DELIVERED' && (
+                      <a
+                        href={order.shippingInfo.trackingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 bg-white text-[#88013C] border-2 border-[#88013C] px-6 py-2.5 rounded-full font-semibold hover:bg-gray-50 transition whitespace-nowrap"
+                      >
+                        Track
+                      </a>
+                    )}
+                    <Link
+                      to={`/orders/${order.id}`}
+                      className="flex items-center justify-center gap-2 bg-[#88013C] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#6a0129] transition whitespace-nowrap"
+                    >
+                      View Details
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
                 </div>
               </motion.div>
             ))}

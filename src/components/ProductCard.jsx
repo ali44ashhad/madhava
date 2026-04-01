@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 /**
  * Single product card – used across the site. No Add to Cart / Buy Now.
  * Data from backend: featuredImageUrl or images[0].url, minPrice/maxPrice or skus[0].sellingPrice/mrp, etc.
  */
 const ProductCard = ({ product, showTimer = false, className = '' }) => {
-  const [wishlisted, setWishlisted] = useState(false);
 
   const productId = product?.id || product?.slug;
   const imageUrl =
@@ -39,8 +38,13 @@ const ProductCard = ({ product, showTimer = false, className = '' }) => {
       ? Math.round(((Number(oldPrice) - Number(price)) / Number(oldPrice)) * 100)
       : null;
 
-  const rating = product?.rating ?? '4.0';
-  const ratingCount = product?.ratingCount ?? product?.reviewsCount ?? 0;
+  const ratingSource = product?.ratingAverage ?? product?.averageRating ?? product?.rating ?? 0;
+  const ratingValue = Number(ratingSource);
+  const rating = Number.isFinite(ratingValue) ? ratingValue.toFixed(1) : '0.0';
+
+  const ratingCountSource = product?.ratingCount ?? product?.reviewsCount ?? product?.totalReviews ?? 0;
+  const ratingCountValue = Number(ratingCountSource);
+  const ratingCount = Number.isFinite(ratingCountValue) ? Math.max(0, Math.floor(ratingCountValue)) : 0;
   const subcategoryName = product?.subcategory?.name || product?.subcategoryName || product?.specs;
 
   return (
@@ -56,24 +60,8 @@ const ProductCard = ({ product, showTimer = false, className = '' }) => {
           className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
           loading="lazy"
         />
-        {/* Wishlist icon */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setWishlisted((v) => !v);
-          }}
-          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 flex items-center justify-center shadow-sm z-10 hover:bg-white transition"
-          aria-label="Wishlist"
-        >
-          <Heart
-            size={18}
-            className={wishlisted ? 'fill-red-500 text-red-500' : 'text-gray-600'}
-          />
-        </button>
         {/* Optional Mall badge */}
-       
+
       </div>
 
       {/* Content */}

@@ -8,6 +8,7 @@ export const STORE_ENDPOINTS = {
     ADDRESSES: '/api/v1/store/addresses',
     ORDERS: '/api/v1/store/orders',
     COUPONS: '/api/v1/store/coupons',
+    REVIEWS: '/api/v1/store/reviews',
 };
 
 export const AUTH_ENDPOINTS = {

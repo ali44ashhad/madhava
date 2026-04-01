@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   User,
   Package,
   MapPin,
-  Heart,
   Settings,
   ChevronDown,
   LogOut,
   Trash2,
+  ArrowLeft,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import ProfileOverview from './ProfileOverview';
 import MyOrders from './MyOrders';
-import Wishlist from './Wishlist';
 import Addresses from './Addresses';
 import SettingsSection from './Settings';
 
@@ -23,7 +22,8 @@ const Profile = () => {
   const { customer, logout, deleteAccount, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [activeSection, setActiveSection] = useState('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = searchParams.get('tab') || 'overview';
 
 
 
@@ -39,8 +39,6 @@ const Profile = () => {
         return <ProfileOverview user={customer} />;
       case 'orders':
         return <MyOrders />;
-      case 'wishlist':
-        return <Wishlist />;
       case 'addresses':
         return <Addresses />;
       case 'settings':
@@ -51,8 +49,19 @@ const Profile = () => {
   };
 
   return (
-    <div className="pt-40 min-h-screen bg-gradient-to-br from-[#eff4f7] to-white">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#eff4f7] to-white">
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#88013C] transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </Link>
+        </div>
 
         {/* HEADER */}
         <div className="flex justify-between items-center mb-6 relative">
@@ -68,7 +77,7 @@ const Profile = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveSection(item.id)}
+                  onClick={() => setSearchParams({ tab: item.id }, { replace: true })}
                   className={`w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1.5 lg:gap-3 px-2 py-3 lg:px-4 lg:py-3 rounded-lg lg:mb-2 border lg:border-none transition-all duration-200 ${
                     activeSection === item.id
                       ? 'bg-[#88013C] text-white border-[#88013C] shadow-sm lg:shadow-none'
@@ -109,14 +118,12 @@ export default Profile;
 // import { Link, useNavigate } from 'react-router-dom';
 // import axios from 'axios';
 // import { useAuth } from '../../context/AuthContext';
-// import { useWishlist } from '../../context/WishlistContext';
 // import {
 //   User,
 //   Package,
 //   LogOut,
 //   MapPin,
 //   Mail,
-//   Heart,
 //   Settings,
 //   Trash2,
 //   ChevronDown,
@@ -130,7 +137,6 @@ export default Profile;
 
 // const Profile = () => {
 //   const { user, logout, deleteAccount, isAuthenticated } = useAuth();
-//   const { wishlist, removeFromWishlist } = useWishlist();
 //   const navigate = useNavigate();
 
 //   const [addresses, setAddresses] = useState([]);
@@ -225,7 +231,6 @@ export default Profile;
 //   const menuItems = [
 //     { id: 'overview', label: 'Profile Overview', icon: User },
 //     { id: 'orders', label: 'My Orders', icon: Package },
-//     { id: 'wishlist', label: 'Wishlist', icon: Heart },
 //     { id: 'addresses', label: 'Addresses', icon: MapPin },
 //     { id: 'settings', label: 'Settings', icon: Settings },
 //   ];

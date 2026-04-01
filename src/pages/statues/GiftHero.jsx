@@ -46,7 +46,7 @@ const GiftHero = () => {
   return (
     <>
       {/* --- Hero Section --- */}
-      <section className="pt-[72px] md:pt-[80px] w-full relative overflow-hidden">
+      <section className="w-full relative overflow-hidden">
         <div className="relative w-full min-h-[calc(100vh-72px)] sm:h-[320px] md:h-[420px] lg:h-[520px]">
           <img
             src={images.giftHero}

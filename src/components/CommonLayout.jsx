@@ -3,14 +3,16 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { getStoreProducts, getStoreSubcategories } from "../utils/storeApi";
 import ProductCard from "./ProductCard";
+import { ArrowLeft } from "lucide-react";
 
 const CommonLayout = () => {
   const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { getCartCount } = useCart();
-  const [priceFilter, setPriceFilter] = useState("all"); // all | under2000 | under5000 | above5000
-  const [sortBy, setSortBy] = useState("default"); // default | priceLow | priceHigh | popularity
+  const [maxPriceUi, setMaxPriceUi] = useState(null); // number | null (no filter)
+  const [maxPriceFilter, setMaxPriceFilter] = useState(null); // debounced value sent to backend
+  const [sortBy, setSortBy] = useState("newest"); // newest | oldest | priceLow | priceHigh | popularity
 
   // Subcategories + products from backend
   const [subcategories, setSubcategories] = useState([]);
@@ -19,7 +21,24 @@ const CommonLayout = () => {
   const [products, setProducts] = useState([]);
   const [productLoading, setProductLoading] = useState(true);
 
+  const [sliderMax, setSliderMax] = useState(20000);
+
   const activeSubcategorySlug = searchParams.get("sub") || "";
+
+  // Reset slider when navigating between subcategories/categories
+  useEffect(() => {
+    setMaxPriceUi(null);
+    setMaxPriceFilter(null);
+    setSliderMax(20000);
+  }, [slug, activeSubcategorySlug]);
+
+  // Debounce backend filtering while dragging slider
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setMaxPriceFilter(maxPriceUi);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [maxPriceUi]);
 
   useEffect(() => {
     if (!slug) return;
@@ -49,12 +68,14 @@ const CommonLayout = () => {
     (async () => {
       setProductLoading(true);
       try {
-        // Best-effort: if backend supports categorySlug/subcategorySlug filters, this works directly.
+        // Backend-driven filters/sort
         const payload = await getStoreProducts({
           page: 1,
           limit: 99,
           categorySlug: slug,
           subcategorySlug: activeSubcategorySlug || undefined,
+          sort: sortBy || undefined,
+          maxPrice: typeof maxPriceFilter === "number" ? maxPriceFilter : undefined,
         });
         const list = Array.isArray(payload?.products)
           ? payload.products
@@ -75,43 +96,30 @@ const CommonLayout = () => {
     return () => {
       alive = false;
     };
-  }, [slug, activeSubcategorySlug]);
+  }, [slug, activeSubcategorySlug, sortBy, maxPriceFilter]);
 
-  // ✅ Filter + Sort logic (on backend products)
-  const finalProducts = useMemo(() => {
-    let list = [...(products || [])];
+  // Stabilize slider max so it doesn't shrink when results are filtered by the slider itself.
+  useEffect(() => {
+    const list = Array.isArray(products) ? products : [];
+    const derivedMax = list.reduce((acc, p) => {
+      const v = Number(p?.maxPrice ?? p?.minPrice ?? 0);
+      return Number.isFinite(v) ? Math.max(acc, v) : acc;
+    }, 0);
 
-    // Map to a sortable price number (prefer sellingPrice)
-    const getPrice = (p) => {
-      const sku = p?.skus?.[0];
-      const sp = Number(sku?.sellingPrice);
-      const mrp = Number(sku?.mrp);
-      return Number.isFinite(sp) && sp > 0 ? sp : Number.isFinite(mrp) ? mrp : 0;
-    };
-
-    // PRICE FILTER;
-    if (priceFilter === "under2000") {
-      list = list.filter((p) => getPrice(p) <= 2000);
-    } else if (priceFilter === "under5000") {
-      list = list.filter((p) => getPrice(p) <= 5000);
-    } else if (priceFilter === "above5000") {
-      list = list.filter((p) => getPrice(p) > 5000);
+    if (derivedMax > 0) {
+      // When no filter is applied, snap sliderMax to the real max for this subcategory.
+      // When filtered, don't shrink sliderMax (prevents thumb jumping).
+      if (maxPriceFilter == null) setSliderMax(derivedMax);
+      else setSliderMax((prev) => Math.max(prev, derivedMax));
     }
+  }, [products, maxPriceFilter]);
 
-    // SORT
-    if (sortBy === "priceLow") {
-      list.sort((a, b) => getPrice(a) - getPrice(b));
-    } else if (sortBy === "priceHigh") {
-      list.sort((a, b) => getPrice(b) - getPrice(a));
-    } else if (sortBy === "popularity") {
-      list.sort((a, b) => (b?.rating || 0) - (a?.rating || 0));
-    }
-
-    return list;
-  }, [products, priceFilter, sortBy]);
+  const sliderStep = useMemo(() => {
+    return sliderMax <= 5000 ? 50 : sliderMax <= 20000 ? 100 : 250;
+  }, [sliderMax]);
 
   return (
-    <section className="pt-50 max-w-[1400px] mx-auto px-6 py-10">
+    <section className="max-w-[1400px] mx-auto px-6 py-10">
 
       {/* Breadcrumb */}
       <p className="text-sm text-gray-500 mb-4">
@@ -126,15 +134,26 @@ const CommonLayout = () => {
 
       {/* Heading */}
       {!activeSubcategorySlug && (
-        <div className="flex justify-between items-center mb-10">
+        <div className="flex flex-col gap-4 mb-10">
+          <div className="flex items-center justify-between">
+            <Link 
+              to="/categories" 
+              className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#88013C] transition-colors group"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Back to Categories
+            </Link>
+
+            {!subcatLoading && subcategories.length > 0 && (
+              <div className="text-sm font-semibold text-gray-500">
+                {subcategories.length} {subcategories.length === 1 ? 'Subcategory' : 'Subcategories'}
+              </div>
+            )}
+          </div>
+
           <h1 className="text-3xl font-bold">
             <span className="capitalize">{slug?.replaceAll("-", " ")}</span>
           </h1>
-
-          {/* Cart Count */}
-          <div className="text-sm font-semibold text-[#88013C]">
-            Cart: {getCartCount()} items
-          </div>
         </div>
       )}
 
@@ -187,14 +206,10 @@ const CommonLayout = () => {
         </div>
       )}
 
-      {/* Products View - Only show if a subcategory IS selected */}
       {activeSubcategorySlug && (
         <>
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              <span className="capitalize">{activeSubcategorySlug.replaceAll("-", " ")}</span>
-            </h1>
-
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => {
@@ -202,30 +217,51 @@ const CommonLayout = () => {
                 next.delete("sub");
                 setSearchParams(next, { replace: false });
               }}
-              className="text-sm font-semibold text-[#88013C] hover:bg-[#88013C]/10 px-4 py-2 rounded-full transition-colors flex items-center gap-2"
+              className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-[#88013C] transition-colors group"
             >
-              ← Back to Categories
+              <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Back to Subcategories
             </button>
           </div>
+
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <span className="capitalize">{activeSubcategorySlug.replaceAll("-", " ")}</span>
+          </h1>
+        </div>
 
           {/* Filter & Sort */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center mb-6 sm:mb-8">
 
-            {/* PRICE FILTER */}
-            <select
-              value={priceFilter}
-              onChange={(e) => setPriceFilter(e.target.value)}
-              className="
-                border px-3 py-2 sm:px-5 sm:py-2
-                rounded-lg bg-gray-50 text-sm sm:text-base
-                w-full sm:w-auto
-              "
-            >
-              <option value="all">Filter By Price</option>
-              <option value="under2000">Under ₹2,000</option>
-              <option value="under5000">Under ₹5,000</option>
-              <option value="above5000">Above ₹5,000</option>
-            </select>
+            {/* PRICE FILTER (Max price slider) */}
+            <div className="w-full sm:w-[360px] rounded-lg border bg-gray-50 px-3 py-2 sm:px-4 sm:py-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium text-gray-700">Max price</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMaxPriceUi(null);
+                    setMaxPriceFilter(null);
+                  }}
+                  className="text-xs font-semibold text-gray-500 hover:text-[#88013C] transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={sliderMax}
+                  step={sliderStep}
+                  value={typeof maxPriceUi === "number" ? maxPriceUi : sliderMax}
+                  onChange={(e) => setMaxPriceUi(Number(e.target.value))}
+                  className="w-full accent-[#88013C]"
+                />
+                <div className="shrink-0 text-sm font-semibold text-gray-800 tabular-nums">
+                  ₹{Number(typeof maxPriceUi === "number" ? maxPriceUi : sliderMax).toLocaleString()}
+                </div>
+              </div>
+            </div>
 
             {/* SORT */}
             <select
@@ -237,7 +273,8 @@ const CommonLayout = () => {
                 w-full sm:w-auto
               "
             >
-              <option value="default">Sort By</option>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
               <option value="popularity">Popularity</option>
               <option value="priceLow">Price: Low to High</option>
               <option value="priceHigh">Price: High to Low</option>
@@ -255,13 +292,13 @@ const CommonLayout = () => {
               </p>
             )}
 
-            {!productLoading && finalProducts.length === 0 && (
+            {!productLoading && products.length === 0 && (
               <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-gray-100">
                 <p className="text-gray-500 text-lg">No products found for this subcategory.</p>
               </div>
             )}
 
-            {finalProducts.map(product => (
+            {products.map(product => (
               <ProductCard key={product.id} product={product} className="h-full" />
             ))}
 

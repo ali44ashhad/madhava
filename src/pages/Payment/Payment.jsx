@@ -9,7 +9,9 @@ import { createOrder } from '../../api/orderApi';
 import toast from 'react-hot-toast';
 
 const Payment = () => {
-  const { cart, getCartTotal, clearCart } = useCart();
+  const { cart, getCartTotal, clearCart, appliedCoupon, setAppliedCoupon } = useCart();
+
+
   const { customer, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +32,8 @@ const Payment = () => {
   const address = location.state?.address;
   const orderSummary = location.state?.orderSummary;
   const isBuyNow = location.state?.isBuyNow;
-  const couponInfo = location.state?.couponInfo; // { code, discountAmount, coupon }
+  const couponInfo = appliedCoupon || location.state?.couponInfo; // Use context first, then location state fallback
+
 
   const subtotal = orderSummary?.subtotal || getCartTotal();
   const tax = 0; // Inclusive in price
@@ -54,7 +57,88 @@ const Payment = () => {
     }
   }, [isAuthenticated, cart.length, address, navigate]);
 
+  // Re-validate coupon on mount to ensure it's still valid
+  useEffect(() => {
+    const revalidate = async () => {
+      if (appliedCoupon && subtotal > 0) {
+        try {
+          await validateCoupon({
+            code: appliedCoupon.code,
+            subtotal
+          }, { toastId: 'coupon-validation' });
+        } catch (err) {
+
+          // Coupon no longer valid
+          setAppliedCoupon(null);
+        }
+
+
+      }
+    };
+    revalidate();
+  }, [appliedCoupon?.code, subtotal]);
+
+
   const products = location.state?.products || cart;
+
+  const roundToPaise = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+  const allocateDiscountToLines = (orderDiscount, lines) => {
+    const d = roundToPaise(orderDiscount);
+    if (!d || d <= 0) {
+      return lines.map((l) => ({
+        discountAmount: 0,
+        netLineTotal: roundToPaise(l.lineTotal),
+        netUnitPrice: roundToPaise(l.unitPrice),
+      }));
+    }
+    const orderSubtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
+    if (orderSubtotal <= 0) return lines.map((l) => ({ discountAmount: 0, netLineTotal: roundToPaise(l.lineTotal), netUnitPrice: roundToPaise(l.unitPrice) }));
+
+    const allocs = lines.map((l) => {
+      const raw = (d * l.lineTotal) / orderSubtotal;
+      const disc = roundToPaise(raw);
+      const clamped = Math.min(l.lineTotal, Math.max(0, disc));
+      const netLineTotal = roundToPaise(Math.max(0, l.lineTotal - clamped));
+      const netUnitPrice = l.quantity > 0 ? roundToPaise(netLineTotal / l.quantity) : roundToPaise(l.unitPrice);
+      return { discountAmount: clamped, netLineTotal, netUnitPrice };
+    });
+
+    const allocated = roundToPaise(allocs.reduce((s, a) => s + a.discountAmount, 0));
+    let remainder = roundToPaise(d - allocated);
+    if (remainder !== 0) {
+      let targetIdx = 0;
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].lineTotal > lines[targetIdx].lineTotal) targetIdx = i;
+      }
+      const lineTotal = lines[targetIdx].lineTotal;
+      const cur = allocs[targetIdx].discountAmount;
+      const next = roundToPaise(Math.min(lineTotal, Math.max(0, cur + remainder)));
+      const appliedDelta = roundToPaise(next - cur);
+      allocs[targetIdx].discountAmount = next;
+      allocs[targetIdx].netLineTotal = roundToPaise(Math.max(0, lineTotal - next));
+      allocs[targetIdx].netUnitPrice = lines[targetIdx].quantity > 0 ? roundToPaise(allocs[targetIdx].netLineTotal / lines[targetIdx].quantity) : roundToPaise(lines[targetIdx].unitPrice);
+      remainder = roundToPaise(remainder - appliedDelta);
+    }
+
+    return allocs;
+  };
+
+  const paymentLines = products.map((item) => {
+    const unitPrice = Number(item.price || 0);
+    const quantity = Number(item.quantity || 0);
+    return {
+      id: item.id,
+      quantity,
+      unitPrice,
+      lineTotal: unitPrice * quantity,
+      name: item.name,
+      image: item.image || item.images?.[0] || item.img,
+    };
+  });
+
+  const paymentLineAllocations =
+    discount > 0 ? allocateDiscountToLines(discount, paymentLines) : paymentLines.map((l) => ({ discountAmount: 0, netLineTotal: l.lineTotal, netUnitPrice: l.unitPrice }));
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -152,7 +236,6 @@ const Payment = () => {
             color: '#88013C',
           },
           handler: async function (response) {
-            alert(JSON.stringify(response));
             toast.success(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
             if (!isBuyNow) {
               clearCart();
@@ -204,7 +287,7 @@ const Payment = () => {
   ];
 
   return (
-    <div className="pt-24 md:pt-32 min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
@@ -287,19 +370,30 @@ const Payment = () => {
 
               {/* Product List */}
               <div className="space-y-3 mb-4 pb-4 border-b border-gray-200 max-h-60 overflow-y-auto">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex gap-3">
+                {paymentLines.map((item, idx) => (
+                  <div key={item.id || idx} className="flex gap-3">
                     <img
-                      src={item.image || item.images?.[0] || item.img}
+                      src={item.image}
                       alt={item.name}
                       className="w-16 h-16 object-cover rounded-lg"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
                       <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
-                      <p className="text-sm font-bold text-[#88013C]">
-                        ₹{(item.price * item.quantity).toLocaleString()}
-                      </p>
+                      {discount > 0 ? (
+                        <div className="space-y-0.5">
+                          <p className="text-xs text-gray-500 line-through">
+                            ₹{Number(item.lineTotal).toLocaleString()}
+                          </p>
+                          <p className="text-sm font-bold text-[#88013C]">
+                            ₹{Number(paymentLineAllocations[idx]?.netLineTotal ?? item.lineTotal).toLocaleString()}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-bold text-[#88013C]">
+                          ₹{Number(item.lineTotal).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

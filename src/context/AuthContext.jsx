@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../api/authApi';
+import { refreshAccessToken } from '../api/client';
 
 const AuthContext = createContext();
 
@@ -20,13 +21,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Attempt to get a new access token using the HttpOnly refresh token cookie
-        const response = await authApi.refresh();
-
-        if (response && response.accessToken) {
-          window.__ACCESS_TOKEN__ = response.accessToken;
+        // Attempt to get a new access token using the HttpOnly refresh token cookie.
+        // Use the shared refresh lock to avoid parallel refresh calls.
+        const accessToken = await refreshAccessToken();
 
           // If successful, fetch the customer profile
+        if (accessToken) {
           const customerProfile = await authApi.getMe();
 
           setCustomer(customerProfile);
@@ -53,6 +53,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const clearSession = () => {
+    console.log('[Auth] Clearing session state.');
     window.__ACCESS_TOKEN__ = null;
     setCustomer(null);
     setIsAuthenticated(false);
