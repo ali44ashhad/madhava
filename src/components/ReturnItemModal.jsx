@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, Info } from 'lucide-react';
+import MultiImageUpload from './MultiImageUpload';
 
 const RETURN_REASONS = [
     'Size/Fit Issue',
@@ -13,22 +14,14 @@ const RETURN_REASONS = [
 
 const ReturnItemModal = ({ isOpen, onClose, onSubmit, item, loading }) => {
     const [reason, setReason] = useState('');
-    const [images, setImages] = useState(['']);
+    const [images, setImages] = useState([]);
     const [note, setNote] = useState('');
     const [error, setError] = useState('');
 
     if (!isOpen || !item) return null;
 
-    const handleImageChange = (index, value) => {
-        const newImages = [...images];
-        newImages[index] = value;
+    const handleImageChange = (newImages) => {
         setImages(newImages);
-    };
-
-    const addImageField = () => {
-        if (images.length < 3) {
-            setImages([...images, '']);
-        }
     };
 
     const handleSubmit = (e) => {
@@ -65,19 +58,19 @@ const ReturnItemModal = ({ isOpen, onClose, onSubmit, item, loading }) => {
     const productName = skuSnapshot.productName || 'Product';
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+                <div className="flex items-center justify-between p-6 border-b border-gray-100 flex-shrink-0">
                     <h2 className="text-xl font-semibold text-gray-900">Request Return</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                        className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 overflow-y-auto flex-1">
                     <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
                         {skuSnapshot.imageUrl ? (
                             <img src={skuSnapshot.imageUrl} alt={productName} className="w-16 h-16 object-cover rounded border" />
@@ -119,30 +112,13 @@ const ReturnItemModal = ({ isOpen, onClose, onSubmit, item, loading }) => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Image URLs * <span className="text-gray-400 font-normal">(Provide at least 1 image)</span></label>
-                            <div className="space-y-3">
-                                {images.map((img, idx) => (
-                                    <div key={idx} className="relative">
-                                        <Upload className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                        <input
-                                            type="url"
-                                            value={img}
-                                            onChange={(e) => handleImageChange(idx, e.target.value)}
-                                            placeholder="https://example.com/image.jpg"
-                                            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#88013C]/20 focus:border-[#88013C] transition-colors"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                            {images.length < 3 && (
-                                <button
-                                    type="button"
-                                    onClick={addImageField}
-                                    className="mt-2 text-sm text-[#88013C] font-medium hover:underline"
-                                >
-                                    + Add another image URL
-                                </button>
-                            )}
+                            <MultiImageUpload
+                                value={images}
+                                onChange={handleImageChange}
+                                folder="returns"
+                                label="Item Images *"
+                                maxImages={3}
+                            />
                         </div>
 
                         <div>

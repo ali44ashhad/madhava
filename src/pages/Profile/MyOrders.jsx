@@ -5,6 +5,7 @@ import ReturnItemModal from '../../components/ReturnItemModal';
 import CancelOrderModal from '../../components/CancelOrderModal';
 import { requestReturn, cancelOrder } from '../../api/orderApi';
 import toast from 'react-hot-toast';
+import ReviewModal from '../../components/ReviewModal';
 const formatDate = (dateString) => {
   const d = new Date(dateString);
   return d.toLocaleDateString('en-US', {
@@ -17,6 +18,29 @@ const formatDate = (dateString) => {
   });
 };
 
+const getReturnWindowState = (order) => {
+  const isDelivered = order?.status === 'DELIVERED';
+  const deliveredAt = order?.deliveredAt ? new Date(order.deliveredAt) : null;
+  const hasDeliveredAt = Boolean(deliveredAt) && !Number.isNaN(deliveredAt?.getTime());
+
+  if (!isDelivered || !hasDeliveredAt) {
+    return {
+      isDelivered,
+      hasDeliveredAt,
+      isReturnWindowExpired: false,
+    };
+  }
+
+  const returnWindowEnd = new Date(deliveredAt);
+  returnWindowEnd.setDate(returnWindowEnd.getDate() + 7);
+
+  return {
+    isDelivered,
+    hasDeliveredAt,
+    isReturnWindowExpired: new Date() > returnWindowEnd,
+  };
+};
+
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +51,9 @@ const MyOrders = () => {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [selectedOrderToCancel, setSelectedOrderToCancel] = useState(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedOrderItemIdForReview, setSelectedOrderItemIdForReview] = useState(null);
+  const [selectedReviewForModal, setSelectedReviewForModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ordersPerPage = 3;
 
@@ -65,7 +92,7 @@ const MyOrders = () => {
       // Refresh orders list to show updated status
       await fetchOrders();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to request return');
+      toast.error(err.response?.data?.message || err.message || 'Failed to request return');
     } finally {
       setReturnLoading(false);
     }
@@ -89,6 +116,12 @@ const MyOrders = () => {
     } finally {
       setCancelLoading(false);
     }
+  };
+
+  const handleReviewClick = (orderItem) => {
+    setSelectedOrderItemIdForReview(orderItem.id);
+    setSelectedReviewForModal(orderItem.review || null);
+    setReviewModalOpen(true);
   };
 
   const getStatusColor = (status) => {
@@ -174,8 +207,11 @@ const MyOrders = () => {
       </div>
 
       <div className="grid gap-6">
-        {orders.slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage).map((order) => (
-          <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+        {orders.slice((currentPage - 1) * ordersPerPage, currentPage * ordersPerPage).map((order) => {
+          const { isDelivered, hasDeliveredAt, isReturnWindowExpired } = getReturnWindowState(order);
+
+          return (
+            <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             {/* Order Header */}
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center py-4 justify-between gap-4">
               <div>
@@ -184,6 +220,11 @@ const MyOrders = () => {
                 <p className="text-sm text-gray-500 mt-1">
                   Placed on {formatDate(order.placedAt || order.createdAt)}
                 </p>
+                {isDelivered && hasDeliveredAt && (
+                  <p className="text-sm text-green-700 mt-1 font-medium">
+                    Delivered on {formatDate(order.deliveredAt)}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col sm:items-end gap-3 sm:gap-2">
                 <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold tracking-wide w-fit self-start sm:self-end ${getStatusColor(order.status)}`}>
@@ -191,6 +232,11 @@ const MyOrders = () => {
                   {order.status}
                 </div>
                 <div className="text-sm text-gray-600 font-medium">
+                  {order.paymentMethod === 'COD' && Number(order.codFee) > 0 && (
+                    <div className="mb-1">
+                      COD Fee: <span className="text-gray-900 font-bold">₹{Number(order.codFee).toFixed(2)}</span>
+                    </div>
+                  )}
                   Total: <span className="text-gray-900 font-bold text-lg">₹{Number(order.totalAmount).toFixed(2)}</span>
                 </div>
               </div>
@@ -204,14 +250,20 @@ const MyOrders = () => {
                   const productName = snapshot.productName || 'Unknown Product';
                   const skuCode = snapshot.skuCode || 'Unknown SKU';
                   const price = Number(item.pricePerUnit).toFixed(2);
+                  const hasNet = Number(item.discountAmount || 0) > 0 && item.netPricePerUnit && item.netTotalPrice;
+                  const netUnit = hasNet ? Number(item.netPricePerUnit).toFixed(2) : null;
                   const imageUrl = snapshot.imageUrl;
 
                   return (
                     <div key={item.id || idx} className="flex flex-col sm:flex-row sm:items-center gap-4 py-4 border-b border-gray-100 last:border-0 last:pb-0">
                       <div className="flex items-start sm:items-center gap-4 flex-1">
                         <div className="w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
-                          {imageUrl ? (
-                            <img src={imageUrl} alt={productName} className="w-full h-full object-cover" />
+                          {imageUrl || item.sku?.images?.[0]?.imageUrl || item.sku?.product?.images?.[0]?.imageUrl ? (
+                            <img 
+                              src={imageUrl || item.sku?.images?.[0]?.imageUrl || item.sku?.product?.images?.[0]?.imageUrl} 
+                              alt={productName} 
+                              className="w-full h-full object-cover" 
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
                               <Package size={24} />
@@ -222,31 +274,87 @@ const MyOrders = () => {
                           <h4 className="text-base font-bold text-gray-800 truncate mb-1">{productName}</h4>
                           <p className="text-sm text-gray-500 font-medium">SKU: {skuCode}</p>
                           <div className="flex items-center gap-4 mt-2">
-                            <p className="text-sm text-gray-600 font-semibold bg-gray-50 px-2 py-0.5 rounded">Qty: {item.quantity}</p>
-                            <p className="text-sm font-bold text-gray-900">₹{price}</p>
+                            <p className="text-sm text-gray-600 font-semibold bg-gray-50 px-2 py-0.5 rounded">
+                              {item.quantity} × ₹{hasNet ? netUnit : price}
+                            </p>
+                            {hasNet ? (
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs text-gray-500 line-through">₹{Number(item.pricePerUnit * item.quantity).toFixed(2)}</p>
+                                <p className="text-sm font-bold text-gray-900">₹{Number(item.netTotalPrice).toFixed(2)}</p>
+                              </div>
+                            ) : (
+                              <p className="text-sm font-bold text-gray-900">₹{Number(item.totalPrice || (Number(item.pricePerUnit) * item.quantity)).toFixed(2)}</p>
+                            )}
                           </div>
                         </div>
                       </div>
 
                       {/* Return Logic */}
-                      {order.status === 'DELIVERED' && !item.return && (
-                        <div className="w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
-                          <button
-                            onClick={() => handleReturnClick(item, order)}
-                            className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-sm font-bold text-[#88013C] border border-[#88013C] rounded-lg hover:bg-[#88013C] hover:text-white transition-colors"
-                          >
-                            <RotateCcw size={16} />
-                            Return Item
-                          </button>
+                      <div className="w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
+                        <div className="flex flex-col sm:items-end gap-2">
+                          {isDelivered && !item.return && (
+                            <button
+                              onClick={() => handleReturnClick(item, order)}
+                              disabled={isReturnWindowExpired}
+                              className={`flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-sm font-bold border rounded-lg transition-colors ${
+                                isReturnWindowExpired
+                                  ? 'text-gray-400 border-gray-300 bg-gray-100 cursor-not-allowed'
+                                  : 'text-[#88013C] border-[#88013C] hover:bg-[#88013C] hover:text-white'
+                              }`}
+                            >
+                              <RotateCcw size={16} />
+                              {isReturnWindowExpired ? 'Return Window Closed' : 'Return Item'}
+                            </button>
+                          )}
+
+                          {item.return && (
+                            <span className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-200 rounded-lg">
+                              Return {item.return.status}
+                            </span>
+                          )}
+
+                          {hasDeliveredAt && (
+                            <>
+                              {!item.review && (
+                                <button
+                                  onClick={() => handleReviewClick(item)}
+                                  className="w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-sm font-bold border rounded-lg transition-colors text-[#88013C] border-[#88013C] hover:bg-[#88013C] hover:text-white"
+                                >
+                                  Write Review
+                                </button>
+                              )}
+
+                              {item.review?.status === 'PENDING' && (
+                                <button
+                                  onClick={() => handleReviewClick(item)}
+                                  className="w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-sm font-bold border rounded-lg transition-colors text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                                >
+                                  Edit Review
+                                </button>
+                              )}
+
+                              {item.review?.status === 'APPROVED' && (
+                                <span className="w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-xs font-bold uppercase tracking-wider text-green-700 bg-green-50 border border-green-200 rounded-lg text-center">
+                                  Review Approved
+                                </span>
+                              )}
+
+                              {item.review?.status === 'REJECTED' && (
+                                <div className="w-full sm:w-auto text-right">
+                                  <span className="block px-4 py-2.5 sm:px-3 sm:py-1.5 text-xs font-bold uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 rounded-lg text-center">
+                                    Review Rejected
+                                  </span>
+                                  {item.review?.rejectionReason ? (
+                                    <p className="mt-1 text-[11px] text-red-600 max-w-[220px] truncate">
+                                      {item.review.rejectionReason}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
-                      )}
-                      {item.return && (
-                        <div className="w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
-                          <span className="flex items-center justify-center gap-1.5 w-full sm:w-auto px-4 py-2.5 sm:px-3 sm:py-1.5 text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 border border-orange-200 rounded-lg">
-                            Return {item.return.status}
-                          </span>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
@@ -261,11 +369,23 @@ const MyOrders = () => {
                   <span className="font-semibold text-gray-800 bg-white border px-2 py-1 rounded inline-block">{order.paymentMethod}</span>
                 </div>
 
-                {order.trackingId && (
-                  <div className="text-sm flex items-center flex-wrap gap-1">
-                    <span className="text-gray-500 font-medium">Tracking ID:</span>
-                    <span className="font-semibold text-[#88013C]">{order.trackingId}</span>
-                    {order.courier && <span className="text-gray-500">({order.courier})</span>}
+                {order.shippingInfo && order.status !== 'DELIVERED' && (
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="text-sm flex items-center flex-wrap gap-1">
+                      <span className="text-gray-500 font-medium">Tracking ID:</span>
+                      <span className="font-semibold text-[#88013C]">{order.shippingInfo.trackingId}</span>
+                      {order.shippingInfo.courier && <span className="text-gray-500">({order.shippingInfo.courier})</span>}
+                    </div>
+                    {order.shippingInfo.trackingLink && (
+                      <a
+                        href={order.shippingInfo.trackingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center bg-white text-[#88013C] border border-[#88013C] px-3 py-1 rounded text-xs font-semibold hover:bg-gray-50 transition whitespace-nowrap"
+                      >
+                        Track
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
@@ -279,8 +399,9 @@ const MyOrders = () => {
                 </button>
               )}
             </div>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       {orders.length > ordersPerPage && (
@@ -341,6 +462,20 @@ const MyOrders = () => {
           onSubmit={handleCancelSubmit}
           order={selectedOrderToCancel}
           loading={cancelLoading}
+        />
+      )}
+
+      {reviewModalOpen && (
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={() => {
+            setReviewModalOpen(false);
+            setSelectedOrderItemIdForReview(null);
+            setSelectedReviewForModal(null);
+          }}
+          orderItemId={selectedOrderItemIdForReview}
+          review={selectedReviewForModal}
+          onSubmitted={fetchOrders}
         />
       )}
     </div>

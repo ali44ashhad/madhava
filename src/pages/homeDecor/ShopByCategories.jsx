@@ -39,7 +39,7 @@ const ShopByCategories = () => {
   return (
     <>
       {/* hero section */}
-      <div className="w-full bg-[#f8f9fa] pt-[72px] md:pt-[80px]">
+      <div className="w-full bg-[#f8f9fa]">
         <section className="relative w-full min-h-[calc(100vh-72px)] flex flex-col md:flex-row overflow-hidden">
           {/* LEFT : IMAGE */}
           <div className="w-full md:w-1/2 relative aspect-[4/3] md:aspect-auto md:min-h-full">

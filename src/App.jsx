@@ -7,17 +7,13 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
 
-import Home from './pages/homePage/Home'
-import Personalize from './pages/GodDresses/Personalize'
-import ShopByCategories from './pages/homeDecor/ShopByCategories'
-import GiftHero from './pages/statues/GiftHero'
+// import Home from './pages/homePage/Home'
+import NewHome from './pages/homePage/NewHome'
 import CommonLayout from './components/CommonLayout'
-import Mandir from './pages/fest/Mandir'
 import ProductDetails from './components/productDetails'
-import PoojaThali from './pages/fest/PoojaThali'
-import DiyaLamps from './pages/fest/DiyaLamps'
 import Cart from './pages/Cart'
 import PageNotFound from './components/PageNotFound'
+import Unauthenticated from './components/Unauthenticated'
 import Login from './pages/Auth/Login'
 import SignUp from './pages/Auth/SignUp'
 import Orders from './pages/Orders/Orders'
@@ -39,11 +35,14 @@ import Cancellation from './pages/policies/Cancellation'
 import Disclaimer from './pages/policies/Disclaimer'
 
 // products
-
-// products
 import Categories from './pages/categories/Categories';
+import ContactUs from './pages/ContactUs/ContactUs';
+import AboutUs from './pages/AboutUs/AboutUs';
+import FAQ from './pages/FAQ/FAQ';
+
 
 import Products from './components/Products';
+
 import ProtectedRoute from './components/ProtectedRoute';
 import ApiErrorHandler from './components/ApiErrorHandler';
 
@@ -89,6 +88,8 @@ function App() {
   }, [location.pathname])
 
   // ✅ Loader screen
+    const isAuthPage = location.pathname === '/login' || location.pathname === '/signup'
+
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white z-[99999]">
@@ -99,7 +100,7 @@ function App() {
 
   return (
     <>
-      <Navbar />
+      {!isAuthPage && <Navbar />}
       <ApiErrorHandler />
 
 
@@ -155,57 +156,52 @@ function App() {
 
       <ScrollToTop />
 
-      <Routes>
-        <Route path='/' element={<Home />} />
+      <main className={isAuthPage ? "" : "pt-[100px] md:pt-[120px] lg:pt-[140px]"}>
+        <Routes>
+          <Route path='/' element={<NewHome />} />
+          <Route path='/home' element={<NewHome />} />
 
-        <Route path='/god-dresses' element={<Personalize />} />
-        <Route path='/home-decor' element={<ShopByCategories />} />
-        <Route path='/home-decor/:slug' element={<ProductDetails />} />
-        <Route path='/god-statues' element={<GiftHero />} />
-        <Route path='/category/:slug' element={<CommonLayout />} />
-        <Route path='/categories' element={<Categories />} />
-        <Route path='/product/:id' element={<ProductDetails />} />
+          <Route path='/category/:slug' element={<CommonLayout />} />
+          <Route path='/categories' element={<Categories />} />
+          <Route path='/product/:id' element={<ProductDetails />} />
 
-        <Route path='/pooja-thali' element={<PoojaThali />} />
-        <Route path='/pooja-thali/:slug' element={<ProductDetails />} />
-
-        <Route path="/diya-lamps" element={<DiyaLamps />} />
-        <Route path='/diya-lamps/:slug' element={<ProductDetails />} />
-
-        <Route path="/mandir" element={<Mandir />} />
-        <Route path='/mandir/:slug' element={<ProductDetails />} />
-
-        <Route path='/login' element={<Login />} />
-        <Route path='/signup' element={<SignUp />} />
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path='/cart' element={<Cart />} />
-          <Route path='/checkout' element={<Checkout />} />
-          <Route path='/payment' element={<Payment />} />
-          <Route path='/profile' element={<Profile />} />
-          <Route path='/orders' element={<Orders />} />
-          <Route path='/orders/:id' element={<OrderDetails />} />
-        </Route>
+          <Route path='/login' element={<Login />} />
+          <Route path='/signup' element={<SignUp />} />
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path='/cart' element={<Cart />} />
+            <Route path='/checkout' element={<Checkout />} />
+            <Route path='/payment' element={<Payment />} />
+            <Route path='/profile' element={<Profile />} />
+            <Route path='/orders' element={<Orders />} />
+            <Route path='/orders/:id' element={<OrderDetails />} />
+          </Route>
 
 
-        <Route path="*" element={<PageNotFound />} />
+          <Route path="/unauthenticated" element={<Unauthenticated />} />
+          <Route path="*" element={<PageNotFound />} />
 
-        {/* policies */}
-        <Route path='/privacy-policy' element={<PrivacyPolicy />} />
-        <Route path='/terms-and-conditions' element={<TermsAndConditions />} />
-        <Route path='/shipping-policy' element={<Shipping />} />
-        <Route path='/return-policy' element={<ReturnAndRefund />} />
-        <Route path='/cancellation-policy' element={<Cancellation />} />
-        <Route path='/disclaimer' element={<Disclaimer />} />
-
-
-        {/* product coommon page */}
-        <Route path='/products' element={<Products />} />
+          {/* policies */}
+          <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+          <Route path='/terms-and-conditions' element={<TermsAndConditions />} />
+          <Route path='/shipping-policy' element={<Shipping />} />
+          <Route path='/return-policy' element={<ReturnAndRefund />} />
+          <Route path='/cancellation-policy' element={<Cancellation />} />
+          <Route path='/disclaimer' element={<Disclaimer />} />
 
 
-      </Routes>
+          {/* product coommon page */}
+          <Route path='/products' element={<Products />} />
+          <Route path='/contact-us' element={<ContactUs />} />
+          <Route path='/about' element={<AboutUs />} />
+          <Route path='/faq' element={<FAQ />} />
 
-      <Footer />
+
+
+        </Routes>
+      </main>
+
+      {!isAuthPage && <Footer />}
     </>
   )
 }
