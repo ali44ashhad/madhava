@@ -7,11 +7,11 @@ import check from "../assets/usdt.jpg";
 
 // home page hero images //
 import heroRight1 from './herorightimages/gopal-dress1.png'
-import heroRight2 from './heroRightimages/gopal-dress2.png'
-import heroRight3 from './heroRightimages/gopal-dress3.png'
-import heroRight4 from './heroRightimages/gopal-dress4.png'
-import heroRight5 from './heroRightimages/gopal-dress5.png'
-import heroRight6 from './heroRightimages/gopal-dress6.png'
+import heroRight2 from './herorightimages/gopal-dress2.png'
+import heroRight3 from './herorightimages/gopal-dress3.png'
+import heroRight4 from './herorightimages/gopal-dress4.png'
+import heroRight5 from './herorightimages/gopal-dress5.png'
+import heroRight6 from './herorightimages/gopal-dress6.png'
 import krishnaFlute from './home/krishna-flute.png'
 
 // ornaments //
