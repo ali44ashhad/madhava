@@ -26,8 +26,8 @@ const MultiImageUpload = ({
 
         // Validate size
         for (const file of files) {
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error(`Image ${file.name} is larger than 5MB`);
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error(`Image ${file.name} is larger than 10MB`);
                 return;
             }
         }
@@ -85,7 +85,7 @@ const MultiImageUpload = ({
                     <span className="text-sm font-medium text-gray-600">
                         {isUploading ? 'Uploading...' : 'Click to select multiple images'}
                     </span>
-                    <span className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB each (Max {maxImages})</span>
+                    <span className="text-xs text-gray-400 mt-1">PNG, JPG up to 10MB each (Max {maxImages})</span>
                 </div>
             )}
 
