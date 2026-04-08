@@ -4,6 +4,7 @@ import { Star, ChevronLeft, Plus, Minus, ShoppingCart, Zap } from "lucide-react"
 import CircleLoader from "react-spinners/CircleLoader"
 import { getStoreProductById, getStoreProductBySlug } from "../utils/storeApi";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import Products from "./Products";
 import toast from 'react-hot-toast';
 import { listApprovedProductReviews } from "../api/reviewApi";
@@ -20,6 +21,7 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const idOrSlug = params?.id || params?.slug;
   const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -235,6 +237,12 @@ const ProductDetails = () => {
     if (!product || !selectedSku) return;
     if (!selectedSku.stockQuantity || selectedSku.stockQuantity <= 0) return;
 
+    if (!isAuthenticated) {
+      toast.error("Please login to use the cart.", { id: 'req-login', duration: 2000 });
+      navigate('/unauthenticated');
+      return;
+    }
+
     // Prepare cart item data
     const cartItem = {
       id: product.id || product._id,
@@ -256,12 +264,18 @@ const ProductDetails = () => {
     addToCart(cartItem);
 
     // Show success toast
-    toast.success("Added to cart successfully!");
+    toast.success("Added to cart successfully!", { id: 'success-cart', duration: 2000 });
   };
 
   const handleBuyNow = () => {
     if (!product || !selectedSku) return;
     if (!selectedSku.stockQuantity || selectedSku.stockQuantity <= 0) return;
+
+    if (!isAuthenticated) {
+      toast.error("Please login to use the cart.", { id: 'req-login', duration: 2000 });
+      navigate('/unauthenticated');
+      return;
+    }
 
     // First add to cart
     handleAddToCart();
