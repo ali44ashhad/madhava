@@ -9,6 +9,7 @@ export const STORE_ENDPOINTS = {
     ORDERS: '/api/v1/store/orders',
     COUPONS: '/api/v1/store/coupons',
     REVIEWS: '/api/v1/store/reviews',
+    RAZORPAY_INITIATE: '/api/v1/store/payments/razorpay/initiate',
 };
 
 export const AUTH_ENDPOINTS = {

@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ArrowLeft, CreditCard, Smartphone, Building2, Wallet, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { createOrder } from '../../api/orderApi';
+import { createOrder, initiateRazorpaySession } from '../../api/orderApi';
 import toast from 'react-hot-toast';
 
 const Payment = () => {
@@ -173,96 +173,121 @@ const Payment = () => {
     setIsProcessing(true);
 
     try {
-      // 1. Prepare Order Payload
       const paymentMethod = selectedMethod === 'cod' ? 'COD' : 'RAZORPAY';
       const items = products.map(item => ({
-        skuId: item.productId || item.id, // Handle both cart items and direct buy items
+        skuId: item.productId || item.id,
         quantity: item.quantity
       }));
 
-      const orderPayload = {
-        customerId: customer.id,
-        addressId: address.id,
-        paymentMethod,
-        paymentReference: null, // Will be updated for Razorpay later if needed, but backend takes it null initially
-        items,
-        ...(couponInfo?.code && { couponCode: couponInfo.code })
-      };
-
-      // 2. Create Order
-      const response = await createOrder(orderPayload);
-      console.log("Order created successfully", response);
-
-      const { orderId, orderNumber, totalAmount, razorpayOrderId } = response.data; // Assuming backend returns this
-
-      // 3. Handle Payment Flow
+      // ── COD path: create order immediately (no Razorpay involved) ──────────
       if (paymentMethod === 'COD') {
-        // Success for COD
-        if (!isBuyNow) {
-          clearCart();
-        }
-        navigate('/orders', { replace: true });
-        toast.success(`Order Placed Successfully! Order # ${orderNumber}`);
-      } else {
-        // Handle Razorpay
-        const res = await loadRazorpay();
-        if (!res) {
-          toast.error('Razorpay process failed to load. Are you online?');
-          setIsProcessing(false);
-          return;
-        }
-
-        const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_SCpSDW8dAGzOEK';
-
-        if (!rzpKey || !rzpKey.startsWith('rzp_test_')) {
-          toast.error("Invalid Razorpay Test Key");
-          setIsProcessing(false);
-          return;
-        }
-
-        const options = {
-          key: rzpKey,
-          amount: Math.round(grandTotal * 100), // Mandatory
-          currency: 'INR', // Mandatory
-          name: 'Nesta Toys',
-          description: `Order #${orderNumber}`,
-          order_id: razorpayOrderId, // Mandatory
-          prefill: {
-            name: address?.name || customer?.name || "Customer",
-            email: customer?.email || "customer@example.com",
-            contact: address?.phone || customer?.phone || "9999999999",
-          },
-          theme: {
-            color: '#88013C',
-          },
-          handler: async function (response) {
-            toast.success(`Payment Successful! Payment ID: ${response.razorpay_payment_id}`);
-            if (!isBuyNow) {
-              clearCart();
-            }
-            navigate('/orders', { replace: true });
-          },
-          modal: {
-            ondismiss: function () {
-              setIsProcessing(false);
-            }
-          }
+        const orderPayload = {
+          addressId: address.id,
+          paymentMethod,
+          items,
+          ...(couponInfo?.code && { couponCode: couponInfo.code })
         };
-
-        const razorpayInstance = new window.Razorpay(options);
-
-        razorpayInstance.on('payment.failed', function (response) {
-          console.error('Razorpay payment failed', response.error);
-          toast.error(`Payment Failed: ${response.error.description || 'Unknown error'}`);
-          setIsProcessing(false);
-        });
-
-        razorpayInstance.open();
+        const response = await createOrder(orderPayload);
+        const { orderNumber } = response.data;
+        if (!isBuyNow) clearCart();
+        navigate('/orders', { replace: true });
+        toast.success(`Order Placed Successfully! Order #${orderNumber}`);
+        return;
       }
 
+      // ── Razorpay path ────────────────────────────────────────────────────
+      // Step 1: Load the Razorpay script (before hitting the server)
+      const scriptLoaded = await loadRazorpay();
+      if (!scriptLoaded) {
+        toast.error('Razorpay failed to load. Please check your connection and try again.');
+        setIsProcessing(false);
+        return;
+      }
+
+      const rzpKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!rzpKey || (!rzpKey.startsWith('rzp_test_') && !rzpKey.startsWith('rzp_live_'))) {
+        toast.error('Payment configuration error. Please contact support.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Step 2: Ask backend to create a Razorpay Order ID — no DB writes yet
+      const session = await initiateRazorpaySession({
+        addressId: address.id,
+        items,
+        ...(couponInfo?.code && { couponCode: couponInfo.code })
+      });
+
+      const { razorpayOrderId } = session;
+
+      // Step 3: Open Razorpay popup
+      const options = {
+        key: rzpKey,
+        amount: Math.round(grandTotal * 100),
+        currency: 'INR',
+        name: 'Nesta Toys',
+        description: `Payment for your order`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: address?.name || customer?.name || 'Customer',
+          email: customer?.email || 'customer@example.com',
+          contact: address?.phone || customer?.phone || '9999999999',
+        },
+        theme: { color: '#88013C' },
+
+        // Step 4: Payment succeeded — now create the order with signature proof
+        handler: async function (response) {
+          try {
+            const orderPayload = {
+              addressId: address.id,
+              paymentMethod: 'RAZORPAY',
+              items,
+              ...(couponInfo?.code && { couponCode: couponInfo.code }),
+              // Signature fields — backend verifies these before writing to DB
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature,
+            };
+
+            const orderResponse = await createOrder(orderPayload);
+            const { orderNumber } = orderResponse.data;
+
+            if (!isBuyNow) clearCart();
+            toast.success(`Payment Successful! Order #${orderNumber}`);
+            navigate('/orders', { replace: true });
+          } catch (err) {
+            console.error('Order creation after payment failed:', err);
+            toast.error(
+              'Payment was received but we could not confirm your order. Please contact support with your Payment ID: ' +
+              response.razorpay_payment_id
+            );
+            setIsProcessing(false);
+          }
+        },
+
+        modal: {
+          // User dismissed the popup — nothing was created, just reset state
+          ondismiss: function () {
+            toast('Payment cancelled. You can try again anytime.', { icon: 'ℹ️' });
+            setIsProcessing(false);
+          }
+        }
+      };
+
+      const razorpayInstance = new window.Razorpay(options);
+
+      razorpayInstance.on('payment.failed', function (response) {
+        console.error('Razorpay payment failed', response.error);
+        // Nothing to clean up — no order was created
+        toast.error(`Payment Failed: ${response.error?.description || 'Unknown error'}. Please try again.`);
+        setIsProcessing(false);
+      });
+
+      razorpayInstance.open();
+
     } catch (error) {
-      console.error('Payment failed:', error);
-      toast.error(error.response?.data?.message || 'Failed to place order. Please try again.');
+      console.error('Payment initiation failed:', error);
+      toast.error(error.response?.data?.message || 'Failed to initiate payment. Please try again.');
       setIsProcessing(false);
     }
   };
