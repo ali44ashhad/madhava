@@ -35,6 +35,14 @@ export const authApi = {
         return response.data;
     },
 
+    deleteAccount: async () => {
+        const response = await apiClient.delete(AUTH_ENDPOINTS.DELETE_ME, {
+            data: { confirm: true },
+            skipToast: true,
+        });
+        return response.data;
+    },
+
     refresh: async () => {
         const response = await apiClient.post(AUTH_ENDPOINTS.REFRESH);
         return response.data;

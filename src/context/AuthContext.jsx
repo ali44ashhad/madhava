@@ -91,6 +91,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const deleteAccount = async () => {
+    await authApi.deleteAccount();
+    clearSession();
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -102,6 +107,7 @@ export const AuthProvider = ({ children }) => {
         loginRequestOtp,
         loginVerifyOtp,
         logout,
+        deleteAccount,
       }}
     >
       {children}

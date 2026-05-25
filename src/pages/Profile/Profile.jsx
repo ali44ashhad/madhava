@@ -1,29 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import {
-  User,
-  Package,
-  MapPin,
-  Settings,
-  ChevronDown,
-  LogOut,
-  Trash2,
-  ArrowLeft,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { User, Package, MapPin, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 import ProfileOverview from './ProfileOverview';
 import MyOrders from './MyOrders';
 import Addresses from './Addresses';
 import SettingsSection from './Settings';
+import DeleteAccountModal from '../../components/DeleteAccountModal';
 
 const Profile = () => {
-  const { customer, logout, deleteAccount, isAuthenticated } = useAuth();
+  const { customer, deleteAccount, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeSection = searchParams.get('tab') || 'overview';
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await deleteAccount();
+      toast.success('Your account has been deleted.');
+      setDeleteModalOpen(false);
+      navigate('/');
+    } catch (error) {
+      const raw = error.response?.data?.error ?? error.response?.data?.message;
+      let message = 'Could not delete account. Please try again.';
+      if (typeof raw === 'string') {
+        message = raw;
+      } else if (Array.isArray(raw) && raw[0]?.message) {
+        message = raw[0].message;
+      }
+      toast.error(message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
 
 
@@ -33,10 +48,28 @@ const Profile = () => {
     { id: 'addresses', label: 'Addresses', icon: MapPin },
   ];
 
+  if (!isLoading && !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#eff4f7] to-white flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Please log in to view your profile.</p>
+          <Link to="/login" className="text-[#88013C] font-semibold hover:underline">
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const renderSection = () => {
     switch (activeSection) {
       case 'overview':
-        return <ProfileOverview user={customer} />;
+        return (
+          <ProfileOverview
+            user={customer}
+            onDeleteAccountClick={isAuthenticated ? () => setDeleteModalOpen(true) : undefined}
+          />
+        );
       case 'orders':
         return <MyOrders />;
       case 'addresses':
@@ -99,6 +132,13 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      <DeleteAccountModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteAccount}
+        loading={deleteLoading}
+      />
     </div>
   );
 };
